@@ -89,7 +89,19 @@
 		"regex": "cpp",
 		"slist": "cpp",
 		"future": "cpp",
-		"shared_mutex": "cpp"
+		"shared_mutex": "cpp",
+		"bit": "cpp",
+		"charconv": "cpp",
+		"compare": "cpp",
+		"format": "cpp",
+		"locale": "cpp",
+		"stop_token": "cpp",
+		"xhash": "cpp",
+		"xlocmes": "cpp",
+		"xlocmon": "cpp",
+		"xloctime": "cpp",
+		"xtree": "cpp",
+		"numbers": "cpp"
 	},
 	"cmake.configureOnOpen": true
 }

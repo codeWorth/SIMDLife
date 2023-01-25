@@ -63,10 +63,6 @@ public:
         return (values[chunkIndex] >> subChunkIndex) & 1;
     }
 
-    void getAll(void *out) const {
-        AVX_STORE(out, chunks);
-    }
-
     void zero() {
         chunks = _mm256_set1_epi8(0x00);
     }
