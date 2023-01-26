@@ -1,5 +1,5 @@
 #pragma once
-#include "avx_bit_array.h"
+#include "../utility/avx_bit_array.h"
 #include <string>
 
 struct Swap {

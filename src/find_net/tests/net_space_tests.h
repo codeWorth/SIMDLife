@@ -1,6 +1,6 @@
 #pragma once
 #include "../net_space.h"
-#include "../constants.h"
+#include "../../constants.h"
 #include <string>
 #include <iostream>
 #include <cstdlib>

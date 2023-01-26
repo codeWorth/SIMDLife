@@ -3,8 +3,9 @@
 #include <bitset>
 #include <iostream>
 
-// swaps i and j if j > i
-// this algo is invented by Astrid Yu, check out her website https://astrid.tech/
+// Swaps i and j if j > i
+// This algorithm to compare and swap two vectors bitwise was proposed by Astrid Yu
+// Check out her website: https://astrid.tech/
 #define CMP_SWAP(i, j) { \
 	auto x = neighbors[i]; \
 	neighbors[i] = _mm256_or_si256(x, neighbors[j]); \

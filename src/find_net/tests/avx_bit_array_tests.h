@@ -1,6 +1,6 @@
 #pragma once
-#include "../avx_bit_array.h"
-#include "../constants.h"
+#include "../../utility/avx_bit_array.h"
+#include "../../constants.h"
 #include <string>
 #include <iostream>
 

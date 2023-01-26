@@ -3,7 +3,7 @@
 #include <bitset>
 #include <immintrin.h>
 #include <algorithm>
-#include "constants.h"
+#include "../constants.h"
 
 // index is the amount of chunks to shift by
 const BYTE RIGHT_SHIFTS[4] = {
