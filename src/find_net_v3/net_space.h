@@ -1,8 +1,18 @@
 #pragma once
 #include "avx_bit_array.h"
+#include <string>
 
-#include <iostream>
-using namespace std;
+struct Swap {
+    BYTE i;
+    BYTE j;
+
+    Swap(BYTE i, BYTE j) : i(i), j(j) {}; 
+
+    std::string toString() const {
+        std::string out{'0' + i, ',', ' ', '0' + j};
+        return out;
+    }
+};
 
 bool getBit(BYTE byte, int index) {
     return byte & (1 << index);
@@ -78,4 +88,8 @@ void appendCompareSwap(AvxBitArray& outputs, int i, int j) {
     int delta = (1 << j) - (1 << i);
     swappingBits >>= delta;     // shift bits over to where they will be swapped to
     outputs |= swappingBits;    // add those bits in
+}
+
+void appendCompareSwap(AvxBitArray& outputs, const Swap& swap) {
+    appendCompareSwap(outputs, swap.i, swap.j);
 }

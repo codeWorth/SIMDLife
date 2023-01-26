@@ -39,6 +39,7 @@
 			"args": [
 				"-march=native",
 				"-O3",
+				"-Wno-narrowing",
 				
 				"${workspaceFolder}\\src\\find_net_v3\\main.cpp",
 				
@@ -63,11 +64,12 @@
 			"args": [
 				"-march=native",
 				"-O3",
+				"-Wno-narrowing",
 				
 				"${workspaceFolder}\\src\\find_net_v3\\test_find_net.cpp",
 				
 				"-o",
-				"${workspaceFolder}\\bin\\findnet_v3.exe"
+				"${workspaceFolder}\\bin\\test_findnet_v3.exe"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"

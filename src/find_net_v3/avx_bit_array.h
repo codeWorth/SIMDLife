@@ -5,10 +5,6 @@
 #include <algorithm>
 #include "constants.h"
 
-#define AVX_LOAD(src) _mm256_load_si256(reinterpret_cast<const __m256i*>(src))
-#define AVX_STORE(dest, src) _mm256_store_si256(reinterpret_cast<__m256i*>(dest), src)
-#define ROT32(x, r) _mm256_or_si256(_mm256_slli_epi32(x, r), _mm256_srli_epi32(x, 32 - r))
-
 // index is the amount of chunks to shift by
 const BYTE RIGHT_SHIFTS[4] = {
     0b11100100,     // src[3] => dst[3], 2 => 2, 1 => 1, 0 => 0
@@ -94,6 +90,10 @@ public:
 
     void setAll(const AvxBitArray& other) {
         data = other.data;
+    }
+
+    void setAll(const AvxArray& other) {
+        data = _mm256_load_si256(&other.avx);
     }
 
     long long popcount() const {

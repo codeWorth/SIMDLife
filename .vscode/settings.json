@@ -101,7 +101,8 @@
 		"xlocmon": "cpp",
 		"xloctime": "cpp",
 		"xtree": "cpp",
-		"numbers": "cpp"
+		"numbers": "cpp",
+		"semaphore": "cpp"
 	},
 	"cmake.configureOnOpen": true
 }
