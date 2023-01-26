@@ -75,7 +75,7 @@ void Utility::shiftRight(uint8_t* rawBits, const __m256i& bits, __m256i& shifted
 	shiftedBits = _mm256_or_si256(rightWithBorder, holeVec);
 }
 
-void Utility::nextState(uint8_t** cells, int row, int column, PackedArray2D& corners, __m256i& nextCells) const {
+void Utility::nextState(uint8_t** cells, int row, int column, __m256i& nextCells) const {
 	auto state = _mm256_load_si256((__m256i *)&cells[row][column]);
 
 	__m256i neighbors[8];

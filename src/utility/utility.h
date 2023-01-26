@@ -2,14 +2,13 @@
 
 #include <immintrin.h>
 #include <stdint.h>
-#include "packed_array_2d.h"
 
 class Utility {
 public:
 	Utility();
 	~Utility();
 
-	void nextState(uint8_t** cells, int row, int column, PackedArray2D& corners, __m256i& nextCells) const;
+	void nextState(uint8_t** cells, int row, int column, __m256i& nextCells) const;
 	void printm256i(const __m256i& val) const;
 	void drawPackedRLE(const char* rle, int x, int y, bool invertX, bool invertY, uint8_t** cells) const;
 

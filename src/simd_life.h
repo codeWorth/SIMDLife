@@ -6,7 +6,6 @@
 #include "life.h"
 #include "constants.h"
 #include "utility/utility.h"
-#include "utility/packed_array_2d.h"
 
 class SIMDLife: Life {
 public:
@@ -27,7 +26,6 @@ private:
 
 	uint8_t** cells;
 	uint8_t** nextCells;
-	PackedArray2D corners;
 
 	std::mutex swapMutex;
 	uint8_t** drawCells;
