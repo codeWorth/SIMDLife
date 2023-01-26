@@ -40,7 +40,31 @@
 				"-march=native",
 				"-O3",
 				
-				"${workspaceFolder}\\src\\find_net_v3\\*.cpp",
+				"${workspaceFolder}\\src\\find_net_v3\\main.cpp",
+				
+				"-o",
+				"${workspaceFolder}\\bin\\findnet_v3.exe"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "C/C++: g++.exe build find_net_v3 tests",
+			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+			"args": [
+				"-march=native",
+				"-O3",
+				
+				"${workspaceFolder}\\src\\find_net_v3\\test_find_net.cpp",
 				
 				"-o",
 				"${workspaceFolder}\\bin\\findnet_v3.exe"

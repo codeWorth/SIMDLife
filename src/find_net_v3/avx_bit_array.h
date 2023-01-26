@@ -5,8 +5,6 @@
 #include <algorithm>
 #include "constants.h"
 
-#define DEBUG
-
 #define AVX_LOAD(src) _mm256_load_si256(reinterpret_cast<const __m256i*>(src))
 #define AVX_STORE(dest, src) _mm256_store_si256(reinterpret_cast<__m256i*>(dest), src)
 #define ROT32(x, r) _mm256_or_si256(_mm256_slli_epi32(x, r), _mm256_srli_epi32(x, 32 - r))
@@ -56,6 +54,10 @@ public:
 
     AvxBitArray(const AvxBitArray &other) {
         this->data = other.data;
+    }
+
+    AvxBitArray(const AvxArray& array) {
+        this->data = _mm256_load_si256(&array.avx);
     }
 
     bool get(int index) const {
@@ -164,15 +166,37 @@ public:
         chunk_shift = amount / 64; // number of full data we need to shift over
         amount -= chunk_shift * 64; // number of extra bits needed after the chunk shift happens
 
-        auto rollover = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]); // align the "next" data with the "current" (does not shfit in zeros)
+        auto rollover = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]); // align the "next" data with the "current" (does not shift in zeros)
         rollover = _mm256_slli_epi64(rollover, 64 - amount); // grab only the bits which will be missing after shift
         rollover = _mm256_blend_epi32(_mm256_set1_epi8(0x00), rollover, BOTTOM_MASKS[1]); // remove the garbage at the top
 
         data = _mm256_srli_epi64(data, amount); // do the main bitshift on the "current" data, it's a right shift because LSB = index 0, but LSB is on the right
         data = _mm256_or_si256(data, rollover); // copy in the bits which got missed at the top of each chunk
 
-        data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[chunk_shift]); // shift left by the given number of data (does not shift in zeros)
-        data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[chunk_shift]); // cut off the garabge
+        switch (chunk_shift) {
+        case 0:
+            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[0]); // shift left by the given number of data (does not shift in zeros)
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[0]); // cut off the garabge
+            break;
+
+        case 1:
+            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[1]);
+            break;
+
+        case 2:
+            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[2]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[2]);
+            break;
+
+        case 3:
+            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[3]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[3]);
+            break;
+        
+        default:
+            break;
+        }
 
         return *this;
     }
@@ -183,6 +207,7 @@ public:
         return out;
     }
 
+    // shifts in zeros
     AvxBitArray& operator>>=(BYTE amount) {
         if (amount >= AVX_SIZE) {
             zero();
@@ -200,8 +225,30 @@ public:
         data = _mm256_slli_epi64(data, amount);
         data = _mm256_or_si256(data, rollover);
 
-        data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[chunk_shift]);
-        data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[chunk_shift]);
+        switch (chunk_shift) {
+        case 0:
+            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[0]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[0]);
+            break;
+        
+        case 1:
+            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[1]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[1]);
+            break;
+
+        case 2:
+            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[2]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[2]);
+            break;
+
+        case 3:
+            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[3]);
+            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[3]);
+            break;
+
+        default:
+            break;
+        }
 
         return *this;
     }
@@ -217,17 +264,27 @@ public:
         return _mm256_movemask_epi8(cmp_result) == 0xFFFFFFFF;
     }
 
+    bool operator!=(const AvxBitArray& other) const {
+        return !(*this == other);
+    }
+
     // compares each bit array in big endian
     bool operator<(const AvxBitArray& other) const {
-        // A contains 1s where this <= other
-        // B contains 1s where other <= this
-        unsigned int A = ~_mm256_movemask_epi8(_mm256_cmpgt_epi64(this->data, other.data));
-        unsigned int B = ~_mm256_movemask_epi8(_mm256_cmpgt_epi64(other.data, this->data));
+        // A contains 1s where this > other
+        // B contains 1s where other > this
+        unsigned int A = _mm256_movemask_epi8(_mm256_cmpgt_epi64(this->data, other.data));
+        unsigned int B = _mm256_movemask_epi8(_mm256_cmpgt_epi64(other.data, this->data));
 
-        // if they are equal, A and B will both be 1s, returning false
+        // if they are equal, A and B will both be 0s, returning false
         // if this < other, then A will contain a 1 where B has a 0, returning true
         // if this < other, then A will contain a 0 where B has a 1, returning false
         return A > B;
+    }
+
+    AvxArray toArray() const {
+        AvxArray values;
+        _mm256_store_si256(&values.avx, data);
+        return values;
     }
 
     std::string toString() const {
@@ -236,9 +293,7 @@ public:
 
     std::string toString(int size) const {
         const std::string sep = " ";
-        
-        AvxArray values;
-        _mm256_store_si256(&values.avx, data);
+        AvxArray values = toArray();
 
         std::string out = "";
         for (size_t i = 0; i < size / 8; i++) {
