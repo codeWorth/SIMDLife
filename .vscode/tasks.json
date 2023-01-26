@@ -34,17 +34,17 @@
 		},
 		{
 			"type": "shell",
-			"label": "C/C++: g++.exe build find_net_v3",
+			"label": "C/C++: g++.exe build find_net",
 			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
 			"args": [
 				"-march=native",
 				"-O3",
 				"-Wno-narrowing",
 				
-				"${workspaceFolder}\\src\\find_net_v3\\main.cpp",
+				"${workspaceFolder}\\src\\find_net\\main.cpp",
 				
 				"-o",
-				"${workspaceFolder}\\bin\\findnet_v3.exe"
+				"${workspaceFolder}\\bin\\findnet.exe"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
@@ -59,17 +59,17 @@
 		},
 		{
 			"type": "shell",
-			"label": "C/C++: g++.exe build find_net_v3 tests",
+			"label": "C/C++: g++.exe build find_net tests",
 			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
 			"args": [
 				"-march=native",
 				"-O3",
 				"-Wno-narrowing",
 				
-				"${workspaceFolder}\\src\\find_net_v3\\test_find_net.cpp",
+				"${workspaceFolder}\\src\\find_net\\tests\\test_find_net.cpp",
 				
 				"-o",
-				"${workspaceFolder}\\bin\\test_findnet_v3.exe"
+				"${workspaceFolder}\\bin\\test_findnet.exe"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
