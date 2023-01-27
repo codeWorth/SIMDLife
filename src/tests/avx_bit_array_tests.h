@@ -1,6 +1,6 @@
 #pragma once
-#include "../../utility/avx_bit_array.h"
-#include "../../constants.h"
+#include "../utility/avx_bit_array.h"
+#include "../constants.h"
 #include <string>
 #include <iostream>
 
@@ -170,14 +170,13 @@ namespace AvxTests {
         }
 
         AvxBitArray c = a & b;
-        AvxBitArray out;
-        a.and_out(b, out);
+        AvxBitArray out = a.and_not(b);
         a &= b;
 
         for (size_t i = 0; i < AVX_SIZE; i++) {
             if (a.get(i) != (i % 3 == 0 && i % 7 == 0)) return false;
             if (c.get(i) != (i % 3 == 0 && i % 7 == 0)) return false;
-            if (out.get(i) != (i % 3 == 0 && i % 7 == 0)) return false;
+            if (out.get(i) != (i % 3 == 0 && i % 7 != 0)) return false;
         }
 
         return true;

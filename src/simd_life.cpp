@@ -1,4 +1,5 @@
 #include "simd_life.h"
+#include "utility/utility.h"
 #include <immintrin.h>
 #include <stdlib.h>
 #include <random>
@@ -6,9 +7,9 @@
 SIMDLife::SIMDLife(int size, std::random_device& rd) : 
 	size(size), eng(rd()), dist(0, 255), rowLen(size/8+33)
 {
-	this->cells = new uint8_t*[size+2];
-	this->nextCells = new uint8_t*[size+2];
-	this->drawCells = new uint8_t*[size+2];
+	this->cells = new BYTE*[size+2];
+	this->nextCells = new BYTE*[size+2];
+	this->drawCells = new BYTE*[size+2];
 }
 
 SIMDLife::~SIMDLife() {
@@ -24,16 +25,16 @@ SIMDLife::~SIMDLife() {
 
 void SIMDLife::setup() {
 	for (int i = 0; i < size+2; i++) {
-		cells[i] = (uint8_t*)_mm_malloc(sizeof(uint8_t)*rowLen, 32);
-		nextCells[i] = (uint8_t*)_mm_malloc(sizeof(uint8_t)*rowLen, 32);
-		drawCells[i] = (uint8_t*)_mm_malloc(sizeof(uint8_t)*rowLen, 32);
+		cells[i] = (BYTE*)_mm_malloc(sizeof(BYTE)*rowLen, 32);
+		nextCells[i] = (BYTE*)_mm_malloc(sizeof(BYTE)*rowLen, 32);
+		drawCells[i] = (BYTE*)_mm_malloc(sizeof(BYTE)*rowLen, 32);
 
 		for (int j = 0; j < rowLen; j++) {
 			cells[i][j] = 0x00;
 		}
 	}
 
-	util.drawPackedRLE(
+	Utility::drawPackedRLE(
 		"11bo38b$10b2o38b$9b2o39b$10b2o2b2o34b$38bo11b$38b2o8b2o$39b2o7b2o$10b2o2b2o18b2o2b2o10b$2o7b2o39b$2o8b2o38b$11bo38b$34b2o2b2o10b$39b2o9b$38b2o10b$38bo!",
 		400, 400, false, false, cells
 	);
@@ -48,11 +49,9 @@ void SIMDLife::setup() {
 }
 
 void SIMDLife::tick() {
-	__m256i nextState = _mm256_setzero_si256();
 	for (int i = 1; i < size+1; i++) {
 		for (int j = 32; j < rowLen-1; j += 32) {
-			util.nextState(cells, i, j, nextState);
-			_mm256_store_si256((__m256i*)&nextCells[i][j], nextState);
+			Utility::nextState(cells, i, j, nextCells[i]);
 		}
 	}
 

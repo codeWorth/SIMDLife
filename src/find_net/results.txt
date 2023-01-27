@@ -15,3 +15,5 @@ From 8 given compare-swaps, this solution can be found:
     3, 5
     3, 6
     5, 6
+
+This sorting network will correctly sort up to 3 ones. 

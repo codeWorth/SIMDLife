@@ -141,8 +141,16 @@ public:
         return out;
     }
 
-    void and_out(const AvxBitArray& other, AvxBitArray& out) const {
-        out.data = _mm256_and_si256(data, other.data);
+    // this & (~other)
+    AvxBitArray and_not(const AvxBitArray& other) const {
+        AvxBitArray out(*this);
+        out.data = _mm256_andnot_si256(other.data, data);
+        return out;
+    }
+
+    // sets data to other where imm8 is 1
+    void blend(const __m256i& other, BYTE imm8) {
+        data = _mm256_blend_epi32(data, other, imm8);
     }
 
     AvxBitArray& operator^=(const AvxBitArray& other) {
@@ -304,8 +312,12 @@ public:
     // However, within the byte, it is still big-endian, meaning index 0 is the LSB of the byte
     AvxArray toArray() const {
         AvxArray values;
-        _mm256_store_si256(&values.avx, data);
+        write(&values);
         return values;
+    }
+
+    void write(AvxArray* dest) const {
+        _mm256_store_si256(&dest->avx, data);
     }
 
     std::string toString() const {

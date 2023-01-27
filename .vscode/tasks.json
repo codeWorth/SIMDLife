@@ -10,7 +10,6 @@
 				"-O3",
 				
 				"${workspaceFolder}\\src\\*.cpp",
-				"${workspaceFolder}\\src\\utility\\*.cpp",
 				"${workspaceFolder}\\src\\glad.c",
 				
 				"-I${workspaceFolder}\\include",
@@ -66,7 +65,7 @@
 				"-O3",
 				"-Wno-narrowing",
 				
-				"${workspaceFolder}\\src\\find_net\\tests\\test_find_net.cpp",
+				"${workspaceFolder}\\src\\tests\\run_tests.cpp",
 				
 				"-o",
 				"${workspaceFolder}\\bin\\test_findnet.exe"
