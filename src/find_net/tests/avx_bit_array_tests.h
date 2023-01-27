@@ -253,18 +253,6 @@ namespace AvxTests {
 
     void runTests() {
         cout << "Testing AvxBitArray... " << endl;
-
-        AvxBitArray testArray({
-            0b00000001, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        });
-
-        for (int i = 0; i < 70; i++) {
-            cout << (testArray << i).toString(128) << endl;
-        }
-
         cout << "\tTest: sets zeros... " << printPassed(setsZeros()) << endl;
         cout << "\tTest: sets ones... " << printPassed(setsOnes()) << endl;
         cout << "\tTest: sets bits... " << printPassed(setsBits()) << endl;
