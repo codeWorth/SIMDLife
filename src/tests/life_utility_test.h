@@ -27,6 +27,11 @@ namespace LifeUtilTests {
         Utility::shiftLeft(src, dst, true);
         if (!dst.get(255)) return false;
 
+        src.zero();
+        Utility::shiftLeft(src, dst, true);
+        if (!dst.get(255)) return false;
+        if (dst.popcount() != 1) return false;
+
         return true;
     }
 
@@ -46,6 +51,11 @@ namespace LifeUtilTests {
 
         Utility::shiftRight(src, dst, true);
         if (!dst.get(0)) return false;
+
+        src.zero();
+        Utility::shiftRight(src, dst, true);
+        if (!dst.get(0)) return false;
+        if (dst.popcount() != 1) return false;
 
         return true;
     }

@@ -39,6 +39,11 @@ void SIMDLife::setup() {
 		400, 400, false, false, cells
 	);
 
+	// Utility::drawPackedRLE(
+	// 	"bob$2bo$3o!",
+	// 	150, 900, false, false, cells
+	// );
+
 	for (int i = 1; i < size+1; i++) {
 		for (int j = 32; j < rowLen-1; j++) {
 			// cells[i][j] = (dist(eng) & dist(eng)) & 0xFF;
@@ -51,7 +56,7 @@ void SIMDLife::setup() {
 void SIMDLife::tick() {
 	for (int i = 1; i < size+1; i++) {
 		for (int j = 32; j < rowLen-1; j += 32) {
-			Utility::nextState(cells, i, j, nextCells[i]);
+			Utility::nextState(cells, i, j, nextCells[i] + j);
 		}
 	}
 
@@ -68,15 +73,16 @@ void SIMDLife::draw(char* pixelBuffer) {
 	swapMutex.unlock();
 
 	// 0th byte has only lowest bit, 1st byte has 2nd lowest bit, 2nd byte has 3rd lowest bit, etc
-	__m256i maskBits = _mm256_set1_epi64x(0x0102040810204080LL);
+	__m256i maskBits = _mm256_set1_epi64x(0x8040201008040201LL);
 	__m256i ones = _mm256_set1_epi8(0xFF);
 
-	for (int pixI = 0; pixI < WINDOW_SIZE; pixI += CELL_WIDTH) {
-		int cellI = pixI / CELL_WIDTH + 1;
+	for (int pixI = 0; pixI < WINDOW_SIZE; pixI += 1) {
+		int cellI = pixI + 1;
 
-		for (int pixJ = 0; pixJ < WINDOW_SIZE; pixJ += 32) { // 256 bits = 32 bytes = 32 pixels at a time
-			int cellJ = pixJ / 8 / CELL_WIDTH + 32;
-			__m128i cellArray = _mm_load_si128((__m128i*)&drawCells[cellI][cellJ]);
+		for (int pixJ = 0; pixJ < WINDOW_SIZE; pixJ += 32) { // 256 bits means we can only process 32 pixels at a time
+
+			int cellJ = pixJ / 8 + 32;
+			__m128i cellArray = _mm_loadu_si128((__m128i*)&drawCells[cellI][cellJ]);
 
 			__m256i A = _mm256_broadcastb_epi8(cellArray);	// spread each byte across the entire 256 bit vector
 			cellArray = _mm_srli_epi32(cellArray, 8);
@@ -91,11 +97,11 @@ void SIMDLife::draw(char* pixelBuffer) {
 			__m256i fullBytes = _mm256_blend_epi32(A, C, 0b11110000);	// put A/B in the bottom bits and C/D in the top bits
 
 			fullBytes = _mm256_and_si256(fullBytes, maskBits);	// extract each packed bit to be the only one present in the byte
-			fullBytes = _mm256_xor_si256(fullBytes, ones); // bitwise not, only the bytes with a high bit will be != 0xFF
-			fullBytes = _mm256_cmpeq_epi8(fullBytes, ones);	// check which bytes had a 1, filling the byte with 1s if they do
+			fullBytes = _mm256_xor_si256(fullBytes, ones); 		// bitwise not, only the bytes with a high bit will be != 0xFF
+			fullBytes = _mm256_cmpeq_epi8(fullBytes, ones);		// check which bytes had a 1, filling the byte with 1s if they do
 			
 			_mm256_store_si256((__m256i*)&pixelBuffer[pixI * WINDOW_SIZE + pixJ], fullBytes);
-			
+
 		}
 	}
 }

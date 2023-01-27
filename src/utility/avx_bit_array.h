@@ -2,6 +2,7 @@
 #include <string>
 #include <bitset>
 #include <immintrin.h>
+#include <algorithm>
 #include "../constants.h"
 
 // index is the amount of chunks to shift by
@@ -56,6 +57,10 @@ public:
         setAll(array);
     }
 
+    AvxBitArray(const BYTE* source) {
+        data = _mm256_loadu_si256((__m256i*)source);
+    }
+
     bool get(int index) const {
         int byteIndex, subByteIndex;
         byteIndex = index / 8;
@@ -96,6 +101,10 @@ public:
         data = _mm256_load_si256(&other.avx);
     }
 
+    void setAll(const BYTE* source) {
+        data = _mm256_load_si256((__m256i*)source);
+    }
+
     long long popcount() const {
         return _mm_popcnt_u64(_mm256_extract_epi64(data, 0)) 
             + _mm_popcnt_u64(_mm256_extract_epi64(data, 1)) 
@@ -124,6 +133,11 @@ public:
         return *this;
     }
 
+    AvxBitArray& operator|=(const __m256i& other) {
+        data = _mm256_or_si256(data, other);
+        return *this;
+    }
+
     AvxBitArray operator|(const AvxBitArray& other) const {
         AvxBitArray out(*this);
         out |= other;
@@ -146,11 +160,6 @@ public:
         AvxBitArray out(*this);
         out.data = _mm256_andnot_si256(other.data, data);
         return out;
-    }
-
-    // sets data to other where imm8 is 1
-    void blend(const __m256i& other, BYTE imm8) {
-        data = _mm256_blend_epi32(data, other, imm8);
     }
 
     AvxBitArray& operator^=(const AvxBitArray& other) {
@@ -312,12 +321,12 @@ public:
     // However, within the byte, it is still big-endian, meaning index 0 is the LSB of the byte
     AvxArray toArray() const {
         AvxArray values;
-        write(&values);
+        write(values.bytes);
         return values;
     }
 
-    void write(AvxArray* dest) const {
-        _mm256_store_si256(&dest->avx, data);
+    void write(BYTE* dest) const {
+        _mm256_store_si256((__m256i*)dest, data);
     }
 
     std::string toString() const {
@@ -332,6 +341,7 @@ public:
         for (size_t i = 0; i < size / 8; i++) {
             if (i != 0) out += sep;
             std::string bits = std::bitset<8>(values.bytes[i]).to_string();
+            std::reverse(bits.begin(), bits.end());
             out += bits;
         }
         return out;
