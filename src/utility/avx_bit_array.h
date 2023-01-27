@@ -2,23 +2,22 @@
 #include <string>
 #include <bitset>
 #include <immintrin.h>
-#include <algorithm>
 #include "../constants.h"
 
 // index is the amount of chunks to shift by
 const BYTE RIGHT_SHIFTS[4] = {
-    0b11100100,     // src[3] => dst[3], 2 => 2, 1 => 1, 0 => 0
-    0b10010011,     // src[2] => dst[3], 1 => 2, 0 => 1, 0 => 0
-    0b01000000,     // src[1] => dst[3], 0 => 2, 0 => 1, 0 => 0
-    0b00000000      // src[0] => dst[3], 0 => 2, 0 => 1, 0 => 0
-};
-
-// index is the amount of chunks to shift by
-const BYTE LEFT_SHIFTS[4] = {
     0b11100100,     // 0: src[3] => dst[3], 2 => 2, 1 => 1, 0 => 0
     0b11111001,     // 1: src[3] => dst[3], 3 => 2, 2 => 1, 1 => 0
     0b11111110,     // 2: src[3] => dst[3], 3 => 2, 3 => 1, 2 => 0
     0b11111111      // 2: src[3] => dst[3], 3 => 2, 3 => 1, 3 => 0
+};
+
+// index is the amount of chunks to shift by
+const BYTE LEFT_SHIFTS[4] = {
+    0b11100100,     // src[3] => dst[3], 2 => 2, 1 => 1, 0 => 0
+    0b10010000,     // src[2] => dst[3], 1 => 2, 0 => 1, 0 => 0
+    0b01000000,     // src[1] => dst[3], 0 => 2, 0 => 1, 0 => 0
+    0b00000000      // src[0] => dst[3], 0 => 2, 0 => 1, 0 => 0
 };
 
 // index is the number of bytes to mask away
@@ -52,8 +51,9 @@ public:
         this->data = other.data;
     }
 
+    // Arrays are processed the same way they are outputted, see toArray() for more info
     AvxBitArray(const AvxArray& array) {
-        this->data = _mm256_load_si256(&array.avx);
+        setAll(array);
     }
 
     bool get(int index) const {
@@ -162,36 +162,56 @@ public:
             return *this;
         }
 
+        // The approach is to (1) shift left by amount % 64,
+        // then (2) shift left by amount / 64 chunks.
+        // This simplifies the problem, because the first step is always combining
+        // each 64 bit chunk with its neighbor.
+        // 
+        // 1. b = amount % 64
+        //  A   B   C   D
+        //  B   C   D   -
+        //  -------------
+        //  A'  B'  C'  D'
+        // Each column will be the top (64 - b) bits of itself, 
+        // with the top b bits of its neighbor.
+        //
+        // A' = (A << b) | (B >> (64 - b))
+        // B' = ...
+        // ...
+        // D' = (D << b)
+        //
+        // 2. c = amount / 64
+        //  A   B   C   D   =>  B   C   D   0 (if c == 1)
+
         BYTE chunk_shift;
         chunk_shift = amount / 64; // number of full data we need to shift over
-        amount -= chunk_shift * 64; // number of extra bits needed after the chunk shift happens
+        amount = amount % 64; // number of extra bits needed after the chunk shift happens
+        __m256i zeros = _mm256_set1_epi8(0x00);
 
-        auto rollover = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]); // align the "next" data with the "current" (does not shift in zeros)
-        rollover = _mm256_slli_epi64(rollover, 64 - amount); // grab only the bits which will be missing after shift
-        rollover = _mm256_blend_epi32(_mm256_set1_epi8(0x00), rollover, BOTTOM_MASKS[1]); // remove the garbage at the top
+        auto rollover = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]); // align the neighbors
+        rollover = _mm256_srli_epi64(rollover, 64 - amount);            // grab only the bits which will be missing after shift
+        rollover = _mm256_blend_epi32(zeros, rollover, TOP_MASKS[1]);   // get rid of rollover in the bottom bytes (D' = (D << b))
 
-        data = _mm256_srli_epi64(data, amount); // do the main bitshift on the "current" data, it's a right shift because LSB = index 0, but LSB is on the right
+        data = _mm256_slli_epi64(data, amount); // do the main bitshift
         data = _mm256_or_si256(data, rollover); // copy in the bits which got missed at the top of each chunk
 
         switch (chunk_shift) {
         case 0:
-            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[0]); // shift left by the given number of data (does not shift in zeros)
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[0]); // cut off the garabge
             break;
 
         case 1:
-            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[1]);
+            data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[1]);  // shift left by the given number of data
+            data = _mm256_blend_epi32(zeros, data, TOP_MASKS[1]);   // cut off the garabge
             break;
 
         case 2:
             data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[2]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[2]);
+            data = _mm256_blend_epi32(zeros, data, TOP_MASKS[2]);
             break;
 
         case 3:
             data = _mm256_permute4x64_epi64(data, LEFT_SHIFTS[3]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, BOTTOM_MASKS[3]);
+            data = _mm256_blend_epi32(zeros, data, TOP_MASKS[3]);
             break;
         
         default:
@@ -216,36 +236,35 @@ public:
 
         BYTE chunk_shift;
         chunk_shift = amount / 64;
-        amount -= chunk_shift * 64;
+        amount = amount % 64;
+        __m256i zeros = _mm256_set1_epi8(0x00);
 
         auto rollover = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[1]);
-        rollover = _mm256_srli_epi64(rollover, 64 - amount);
-        rollover = _mm256_blend_epi32(_mm256_set1_epi8(0x00), rollover, TOP_MASKS[1]);
+        rollover = _mm256_slli_epi64(rollover, 64 - amount);               
+        rollover = _mm256_blend_epi32(zeros, rollover, BOTTOM_MASKS[1]);      
 
-        data = _mm256_slli_epi64(data, amount);
+        data = _mm256_srli_epi64(data, amount);
         data = _mm256_or_si256(data, rollover);
 
         switch (chunk_shift) {
         case 0:
-            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[0]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[0]);
             break;
-        
+
         case 1:
-            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[1]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[1]);
+            data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[1]); 
+            data = _mm256_blend_epi32(zeros, data, BOTTOM_MASKS[1]);  
             break;
 
         case 2:
             data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[2]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[2]);
+            data = _mm256_blend_epi32(zeros, data, BOTTOM_MASKS[2]);
             break;
 
         case 3:
             data = _mm256_permute4x64_epi64(data, RIGHT_SHIFTS[3]);
-            data = _mm256_blend_epi32(_mm256_set1_epi8(0x00), data, TOP_MASKS[3]);
+            data = _mm256_blend_epi32(zeros, data, BOTTOM_MASKS[3]);
             break;
-
+        
         default:
             break;
         }
@@ -281,6 +300,8 @@ public:
         return A > B;
     }
 
+    // When written to an array, index 0-7 corresponds to byte 0
+    // However, within the byte, it is still big-endian, meaning index 0 is the LSB of the byte
     AvxArray toArray() const {
         AvxArray values;
         _mm256_store_si256(&values.avx, data);
@@ -299,7 +320,6 @@ public:
         for (size_t i = 0; i < size / 8; i++) {
             if (i != 0) out += sep;
             std::string bits = std::bitset<8>(values.bytes[i]).to_string();
-            std::reverse(bits.begin(), bits.end());
             out += bits;
         }
         return out;

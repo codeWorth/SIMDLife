@@ -86,7 +86,7 @@ void appendCompareSwap(AvxBitArray& outputs, int i, int j) {
     outputs &= ~swappingBits;   // set outputs to 0 where bits will be swapped out
 
     int delta = (1 << j) - (1 << i);
-    swappingBits >>= delta;     // shift bits over to where they will be swapped to
+    swappingBits <<= delta;     // shift bits over to where they will be swapped to
     outputs |= swappingBits;    // add those bits in
 }
 

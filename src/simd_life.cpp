@@ -68,8 +68,8 @@ void SIMDLife::draw(char* pixelBuffer) {
 	}
 	swapMutex.unlock();
 
+	// 0th byte has only lowest bit, 1st byte has 2nd lowest bit, 2nd byte has 3rd lowest bit, etc
 	__m256i maskBits = _mm256_set1_epi64x(0x0102040810204080LL);
-	__m256i zeros = _mm256_setzero_si256();
 	__m256i ones = _mm256_set1_epi8(0xFF);
 
 	for (int pixI = 0; pixI < WINDOW_SIZE; pixI += CELL_WIDTH) {
@@ -77,20 +77,23 @@ void SIMDLife::draw(char* pixelBuffer) {
 
 		for (int pixJ = 0; pixJ < WINDOW_SIZE; pixJ += 32) { // 256 bits = 32 bytes = 32 pixels at a time
 			int cellJ = pixJ / 8 / CELL_WIDTH + 32;
-			uint8_t a = drawCells[cellI][cellJ  ];
-			uint8_t b = drawCells[cellI][cellJ+1];
-			uint8_t c = drawCells[cellI][cellJ+2];
-			uint8_t d = drawCells[cellI][cellJ+3];
+			__m128i cellArray = _mm_load_si128((__m128i*)&drawCells[cellI][cellJ]);
 
-			__m256i fullBytes = _mm256_set_epi8( // not sure why reverse arg order needed
-				d, d, d, d, d, d, d, d,
-				c, c, c, c, c, c, c, c,
-				b, b, b, b, b, b, b, b,
-				a, a, a, a, a, a, a, a
-			);
-			fullBytes = _mm256_and_si256(fullBytes, maskBits);
-			fullBytes = _mm256_cmpeq_epi8(fullBytes, zeros);
-			fullBytes = _mm256_xor_si256(fullBytes, ones); // same as bitwise not
+			__m256i A = _mm256_broadcastb_epi8(cellArray);	// spread each byte across the entire 256 bit vector
+			cellArray = _mm_srli_epi32(cellArray, 8);
+			__m256i B = _mm256_broadcastb_epi8(cellArray);
+			cellArray = _mm_srli_epi32(cellArray, 8);
+			__m256i C = _mm256_broadcastb_epi8(cellArray);
+			cellArray = _mm_srli_epi32(cellArray, 8);
+			__m256i D = _mm256_broadcastb_epi8(cellArray);
+
+			A = _mm256_blend_epi32(A, B, 0b11001100);	// put A in the lowest 64 bits and B in the next lowest 64 bits
+			C =  _mm256_blend_epi32(C, D, 0b11001100);
+			__m256i fullBytes = _mm256_blend_epi32(A, C, 0b11110000);	// put A/B in the bottom bits and C/D in the top bits
+
+			fullBytes = _mm256_and_si256(fullBytes, maskBits);	// extract each packed bit to be the only one present in the byte
+			fullBytes = _mm256_xor_si256(fullBytes, ones); // bitwise not, only the bytes with a high bit will be != 0xFF
+			fullBytes = _mm256_cmpeq_epi8(fullBytes, ones);	// check which bytes had a 1, filling the byte with 1s if they do
 			
 			_mm256_store_si256((__m256i*)&pixelBuffer[pixI * WINDOW_SIZE + pixJ], fullBytes);
 			

@@ -86,14 +86,11 @@ namespace AvxTests {
         }
 
         for (size_t n = 0; n < AVX_SIZE; n++) {
-            AvxBitArray bitArray(false);
-            for (size_t i = 0; i < AVX_SIZE; i++) {
-                bitArray.set(i, i % 3 == 0);
-            }
+            AvxBitArray bitArray(origBitArray);
 
             bitArray <<= n;
             for (size_t i = 0; i < AVX_SIZE; i++) {
-                bool expected = (i < AVX_SIZE - n) && ((i + n) % 3 == 0);
+                bool expected = (i >= n) && ((i + 3*100 - n) % 3 == 0);
                 if (bitArray.get(i) != expected) return false;
                 if ((origBitArray << n).get(i) != expected) return false;
         
@@ -110,14 +107,11 @@ namespace AvxTests {
         }
 
         for (size_t n = 0; n < AVX_SIZE; n++) {
-            AvxBitArray bitArray(false);
-            for (size_t i = 0; i < AVX_SIZE; i++) {
-                bitArray.set(i, i % 3 == 0);
-            }
+            AvxBitArray bitArray(origBitArray);
 
             bitArray >>= n;
             for (size_t i = 0; i < AVX_SIZE; i++) {
-                bool expected = (i >= n) && ((i + 3*100 - n) % 3 == 0);
+                bool expected = (i < AVX_SIZE - n) && ((i + n) % 3 == 0);
                 if (bitArray.get(i) != expected) return false;
                 if ((origBitArray >> n).get(i) != expected) return false;
             }
@@ -259,6 +253,18 @@ namespace AvxTests {
 
     void runTests() {
         cout << "Testing AvxBitArray... " << endl;
+
+        AvxBitArray testArray({
+            0b00000001, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        });
+
+        for (int i = 0; i < 70; i++) {
+            cout << (testArray << i).toString(128) << endl;
+        }
+
         cout << "\tTest: sets zeros... " << printPassed(setsZeros()) << endl;
         cout << "\tTest: sets ones... " << printPassed(setsOnes()) << endl;
         cout << "\tTest: sets bits... " << printPassed(setsBits()) << endl;
