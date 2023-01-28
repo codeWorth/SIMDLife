@@ -39,10 +39,10 @@ void SIMDLife::setup() {
 		400, 400, false, false, cells
 	);
 
-	// Utility::drawPackedRLE(
-	// 	"bob$2bo$3o!",
-	// 	150, 900, false, false, cells
-	// );
+	Utility::drawPackedRLE(
+		"bob$2bo$3o!",
+		240, 900, false, false, cells
+	);
 
 	for (int i = 1; i < size+1; i++) {
 		for (int j = 32; j < rowLen-1; j++) {

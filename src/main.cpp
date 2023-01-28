@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	window = glfwCreateWindow(WINDOW_SIZE, WINDOW_SIZE, "Hash-ish Life", NULL, NULL);
+	window = glfwCreateWindow(WINDOW_SIZE, WINDOW_SIZE, "SIMD Life", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
@@ -154,6 +154,8 @@ int main(int argc, char* argv[]) {
 	life->setup();
 
 	thread PHYSICS_THREAD([life]() {
+		this_thread::sleep_for(milliseconds(500));	// given the window half a second to open
+
 		high_resolution_clock timer;
 		int count = 0;
 		const int maxCount = 512;
@@ -171,8 +173,6 @@ int main(int argc, char* argv[]) {
 					t0 = timer.now();
 				}
 			#endif
-
-			this_thread::sleep_for(milliseconds(1));
 		}
 	});
 
