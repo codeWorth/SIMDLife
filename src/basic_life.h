@@ -12,7 +12,7 @@ public:
 
 	void setup();
 	void tick();
-	void draw(char* pixelBuffer);
+	void draw(BYTE* pixelBuffer, int px0, int py0);
 
 private:
 	const int size;

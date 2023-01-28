@@ -10,7 +10,7 @@
 #include "basic_life.h"
 #include "life.h"
 
-#define LOG_TICK
+// #define LOG_TICK
 
 using namespace std::chrono;
 using namespace std;
@@ -143,6 +143,9 @@ int main(int argc, char* argv[]) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+	GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_RED};
+	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -173,19 +176,21 @@ int main(int argc, char* argv[]) {
 					t0 = timer.now();
 				}
 			#endif
+
+			this_thread::sleep_for(milliseconds(1));
 		}
 	});
 
 	high_resolution_clock timer;
-	const long nanoPerFrame = 16666666; // 60 fps
-	char* pixelBuffer = (char*)_mm_malloc(sizeof(char)*PIXEL_COUNT, 32);
+	const long millisPerFrame = 16; // 60 fps
+	BYTE* pixelBuffer = (BYTE*)_mm_malloc(sizeof(BYTE)*PIXEL_COUNT, 32);
 
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
 
 		auto t0 = timer.now();
 
-		life->draw(pixelBuffer);
+		life->draw(pixelBuffer, 1, 0);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_SIZE, WINDOW_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 
 		glEnableVertexAttribArray(0);
@@ -198,9 +203,15 @@ int main(int argc, char* argv[]) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-		long dt = duration_cast<nanoseconds>(timer.now() - t0).count(); // maintain max of 60 fps
-		dt = max(0L, nanoPerFrame - dt);
-		this_thread::sleep_for(nanoseconds(dt));
+		long dt = duration_cast<milliseconds>(timer.now() - t0).count(); // maintain max of 60 fps
+		dt = millisPerFrame - dt;
+		if (dt < 0) {
+			dt = 0L;
+			cout << "Not enough time to draw!" << endl;
+		} else {
+			cout << "Sleeping for " << dt << " milliseconds" << endl;
+		}
+		this_thread::sleep_for(milliseconds(dt));
 
 	}
 

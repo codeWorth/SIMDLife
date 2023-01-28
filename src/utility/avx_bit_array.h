@@ -105,6 +105,18 @@ public:
         data = _mm256_load_si256((__m256i*)source);
     }
 
+    void setAll(bool value) {
+        if (value) {
+            data = _mm256_set1_epi8(0xFF);
+        } else {
+            zero();
+        }
+    }
+
+    void setAllUnaligned(const BYTE* source) {
+        data = _mm256_loadu_si256((__m256i*)source);
+    }
+
     long long popcount() const {
         return _mm_popcnt_u64(_mm256_extract_epi64(data, 0)) 
             + _mm_popcnt_u64(_mm256_extract_epi64(data, 1)) 
@@ -315,6 +327,29 @@ public:
         // if this < other, then A will contain a 1 where B has a 0, returning true
         // if this < other, then A will contain a 0 where B has a 1, returning false
         return A > B;
+    }
+
+    // spreads the lower 32 bits to 32 bytes (0x00 or 0xFF*)
+    void spreadToBytes() {
+        __m256i A = _mm256_broadcastb_epi8(_mm256_castsi256_si128(data));	// spread each byte across the entire 256 bit vector
+        data = _mm256_srli_epi32(data, 8);
+        __m256i B = _mm256_broadcastb_epi8(_mm256_castsi256_si128(data));
+        data = _mm256_srli_epi32(data, 8);
+        A = _mm256_blend_epi32(A, B, 0b11001100);	// put A in the lowest 64 bits and B in the next lowest 64 bits
+
+        __m256i C = _mm256_broadcastb_epi8(_mm256_castsi256_si128(data));
+        data = _mm256_srli_epi32(data, 8);
+        __m256i D = _mm256_broadcastb_epi8(_mm256_castsi256_si128(data));
+        C =  _mm256_blend_epi32(C, D, 0b11001100);
+
+        data = _mm256_blend_epi32(A, C, 0b11110000);	// put A/B in the bottom bits and C/D in the top bits
+
+        // 0th byte has only lowest bit, 1st byte has 2nd lowest bit, 2nd byte has 3rd lowest bit, etc
+	    __m256i maskBits = _mm256_set1_epi64x(0x8040201008040201LL);
+	    __m256i zeros = _mm256_set1_epi8(0x00);
+
+        data = _mm256_and_si256(data, maskBits);	// extract each packed bit to be the only one present in the byte
+        data = _mm256_cmpgt_epi8(data, zeros);		// check which bytes had a 1, filling the byte with 1s if they do
     }
 
     // When written to an array, index 0-7 corresponds to byte 0
