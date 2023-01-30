@@ -8,22 +8,15 @@
 			"args": [
 				"-march=native",
 				"-O3",
-				"-DTRACY_ENABLE",
 				
 				"${workspaceFolder}\\src\\*.cpp",
 				"${workspaceFolder}\\src\\glad.c",
-				"${workspaceFolder}\\tracy\\public\\TracyClient.cpp",
 				
 				"-I${workspaceFolder}\\include",
-				"-I${workspaceFolder}\\tracy\\public",
 
 				"-L${workspaceFolder}\\lib\\lib-mingw-w64",
 				"-lglfw3",
 				"-lgdi32",
-
-				"-lws2_32",
-				"-lwsock32",
-				"-ldbghelp",
 
 				"-o",
 				"${workspaceFolder}\\bin\\gameoflife.exe"
