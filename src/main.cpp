@@ -208,8 +208,6 @@ int main(int argc, char* argv[]) {
 		if (dt < 0) {
 			dt = 0L;
 			cout << "Not enough time to draw!" << endl;
-		} else {
-			// cout << "Sleeping for " << dt << " milliseconds" << endl;
 		}
 		this_thread::sleep_for(milliseconds(dt));
 

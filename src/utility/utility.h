@@ -1,7 +1,7 @@
 #pragma once
 #include "avx_bit_array.h"
 #include <bitset>
-#include <iostream>
+#include "tracy/Tracy.hpp"
 
 const uint32_t LSB = 0b1;
 const uint32_t MSB = 0b10000000000000000000000000000000;
@@ -38,49 +38,89 @@ namespace Utility {
 	}
 
 	void nextState(BYTE** cells, int row, int column, BYTE* nextCells) {
-		auto state = AvxBitArray(cells[row] + column);
-
 		AvxBitArray neighbors[8];
-		neighbors[1].setAll(cells[row-1] + column); 						// top middle
-		neighbors[6].setAll(cells[row+1] + column); 						// bottom middle
-		shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
-		shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
-		shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
-		shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
-		shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
-		shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
+		AvxBitArray state;
+		AvxBitArray result;
 
-		CMP_SWAP(0, 4);
-		CMP_SWAP(1, 5);
-		CMP_SWAP(2, 6);
-		CMP_SWAP(3, 7);
+		{
+			ZoneScopedN("Read");
+			state = AvxBitArray(cells[row] + column);
+			neighbors[1].setAll(cells[row-1] + column); 						// top middle
+			neighbors[6].setAll(cells[row+1] + column); 						// bottom middle
+		}
 
-		CMP_SWAP(0, 2);
-		CMP_SWAP(1, 3);
-		CMP_SWAP(4, 6);
-		CMP_SWAP(5, 7);
+		{
+			ZoneScopedN("Shift");
+			shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
+			shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
+			shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
+			shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
+			shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
+			shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
+		}
 
-		CMP_SWAP(2, 3);
-		CMP_SWAP(4, 5);
-		CMP_SWAP(6, 7);
+		{
+			ZoneScopedN("CmpSwap");
+			// From find_net
+			CMP_SWAP(0, 4);
+			CMP_SWAP(1, 5);
+			CMP_SWAP(2, 6);
+			CMP_SWAP(3, 7);
 
-		CMP_SWAP(3, 5);
-		CMP_SWAP(3, 6);
-		CMP_SWAP(5, 6);
+			CMP_SWAP(0, 2);
+			CMP_SWAP(1, 3);
+			CMP_SWAP(4, 6);
+			CMP_SWAP(5, 7);
 
-		auto moreThan3_a = neighbors[0] | neighbors[1];
-		auto moreThan3_b = neighbors[2] | neighbors[3];
-		auto moreThan3 = moreThan3_a | moreThan3_b;
-		moreThan3 = moreThan3 | neighbors[4];
+			CMP_SWAP(2, 3);
+			CMP_SWAP(4, 5);
+			CMP_SWAP(6, 7);
 
-		auto atLeast2 = neighbors[6] & neighbors[7];
-		auto exactlyThree = neighbors[5].and_not(moreThan3);
-		auto twoOrThree = atLeast2.and_not(moreThan3);
+			CMP_SWAP(3, 5);
+			CMP_SWAP(3, 6);
+			CMP_SWAP(5, 6);
+			
+			// From Batcher (wolfram alpha generator)
+			// CMP_SWAP(0, 4);
+			// CMP_SWAP(1, 5);
+			// CMP_SWAP(2, 6);
+			// CMP_SWAP(3, 7);
+			// CMP_SWAP(0, 2);
+			// CMP_SWAP(1, 3);
+			// CMP_SWAP(4, 6);
+			// CMP_SWAP(5, 7);
+			// CMP_SWAP(2, 4);
+			// CMP_SWAP(3, 5);
+			// CMP_SWAP(0, 1);
+			// CMP_SWAP(2, 3);
+			// CMP_SWAP(4, 5);
+			// CMP_SWAP(6, 7);
+			// CMP_SWAP(1, 4);
+			// CMP_SWAP(3, 6);
+			// CMP_SWAP(1, 2);
+			// CMP_SWAP(3, 4);
+			// CMP_SWAP(5, 6);
+		}
 
-		// if we have exactly 3 neighbors we're alive regardless of current state
-		// if we have 2 or 3 neighbors, we can be alive if are already
-		auto result = exactlyThree | (twoOrThree & state); 
-		result.write(nextCells);
+		{
+			ZoneScopedN("Counting logic");
+			auto moreThan3_a = neighbors[0] | neighbors[1];
+			auto moreThan3_b = neighbors[2] | neighbors[3];
+			auto moreThan3 = moreThan3_a | moreThan3_b;
+			moreThan3 = moreThan3 | neighbors[4];
+
+			auto atLeast2 = neighbors[6] & neighbors[7];
+			auto exactlyThree = neighbors[5].and_not(moreThan3);
+			auto twoOrThree = atLeast2.and_not(moreThan3);
+
+			// if we have exactly 3 neighbors we're alive regardless of current state
+			// if we have 2 or 3 neighbors, we can be alive if are already
+			result = exactlyThree | (twoOrThree & state); 
+		}
+		{
+			ZoneScopedN("Write");
+			result.write(nextCells);
+		}
 	}
 
 	void drawPackedRLE(const char* rle, int x, int y, bool invertX, bool invertY, BYTE** cells) {

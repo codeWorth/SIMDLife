@@ -3,6 +3,7 @@
 #include <immintrin.h>
 #include <stdlib.h>
 #include <random>
+#include "tracy/Tracy.hpp"
 
 SIMDLife::SIMDLife(int width, int height, std::random_device& rd) : 
 	width(width), height(height), rowLen(width/8+33), 
@@ -45,9 +46,14 @@ void SIMDLife::setup() {
 	// 	240, 900, false, false, cells
 	// );
 
+	for (int i = 1; i < height+1; i++) {
+		for (int j = 32; j < rowLen - 1; j++) {
+			cells[i][j] = (dist(eng) & dist(eng)) & 0xFF;
+		}
+	}
+
 	for (int i = 0; i < height+2; i++) {
 		for (int j = 0; j < rowLen; j++) {
-			cells[i][j] = (dist(eng) & dist(eng)) & 0xFF;
 			nextCells[i][j] = cells[i][j];
 			drawCells[i][j] = cells[i][j];
 		}
@@ -64,6 +70,8 @@ void SIMDLife::tick() {
 	swapMutex.lock();
 	std::swap(cells, nextCells);
 	swapMutex.unlock();
+
+	FrameMark;
 }
 
 void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {

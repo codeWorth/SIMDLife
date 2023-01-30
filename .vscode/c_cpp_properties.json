@@ -4,8 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${default}",
-                "C:\\Users\\agcum\\Documents\\glfw-3.3.2\\include",
-				"C:\\Users\\agcum\\Documents\\glad\\include"
+				"${workspaceFolder}\\include",
+                "C:\\Users\\agcum\\Documents\\Code\\tracy\\public"
             ],
             "defines": [
                 "_DEBUG",
