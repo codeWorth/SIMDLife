@@ -7,7 +7,7 @@
 
 class BasicLife: Life {
 public:
-	BasicLife(int size, std::random_device& rd);
+	BasicLife(int width, int height, std::random_device& rd);
 	~BasicLife();
 
 	void setup();
@@ -15,7 +15,8 @@ public:
 	void draw(BYTE* pixelBuffer, int px0, int py0);
 
 private:
-	const int size;
+	const int width;
+	const int height;
 	std::default_random_engine eng;
 	std::uniform_int_distribution<uint8_t> dist;
 

@@ -2,10 +2,12 @@
 #include <cstdint>
 #include <immintrin.h>
 
-const int WINDOW_SIZE = 1024;
-const int PIXEL_COUNT = WINDOW_SIZE * WINDOW_SIZE;
+const int WINDOW_WIDTH = 256 * 7;
+const int WINDOW_HEIGHT = 1000;
+const int PIXEL_COUNT = WINDOW_WIDTH * WINDOW_HEIGHT;
 
-const int CELLS_SIZE = WINDOW_SIZE;
+const int CELLS_WIDTH = WINDOW_WIDTH;
+const int CELLS_HEIGHT = WINDOW_HEIGHT;
 
 #define BYTE std::uint_fast8_t
 

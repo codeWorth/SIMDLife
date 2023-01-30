@@ -8,7 +8,7 @@
 
 class SIMDLife: Life {
 public:
-	SIMDLife(int size, std::random_device& rd);
+	SIMDLife(int width, int height, std::random_device& rd);
 	~SIMDLife();
 
 	void setup();
@@ -19,7 +19,8 @@ private:
 	
 	std::default_random_engine eng;
 	std::uniform_int_distribution<uint8_t> dist;
-	const int size;
+	const int width;
+	const int height;
 	const int rowLen;
 
 	BYTE** cells;

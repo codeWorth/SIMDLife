@@ -10,7 +10,7 @@
 #include "basic_life.h"
 #include "life.h"
 
-// #define LOG_TICK
+#define LOG_TICK
 
 using namespace std::chrono;
 using namespace std;
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	window = glfwCreateWindow(WINDOW_SIZE, WINDOW_SIZE, "SIMD Life", NULL, NULL);
+	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "SIMD Life", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE_VERTECIES), SQUARE_VERTECIES, GL_STATIC_DRAW);
 
 	random_device rd;
-	SIMDLife* life = new SIMDLife(CELLS_SIZE, rd);
+	SIMDLife* life = new SIMDLife(CELLS_WIDTH, CELLS_HEIGHT, rd);
 	// BasicLife* life = new BasicLife(CELLS_SIZE, rd);
 	life->setup();
 
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 
 		high_resolution_clock timer;
 		int count = 0;
-		const int maxCount = 512;
+		const int maxCount = 2048;
 
 		auto t0 = timer.now();
 		while (true) {
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
 				}
 			#endif
 
-			this_thread::sleep_for(milliseconds(1));
+			// this_thread::sleep_for(milliseconds(1));
 		}
 	});
 
@@ -190,8 +190,8 @@ int main(int argc, char* argv[]) {
 
 		auto t0 = timer.now();
 
-		life->draw(pixelBuffer, 1, 0);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_SIZE, WINDOW_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
+		life->draw(pixelBuffer, 0, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
 			dt = 0L;
 			cout << "Not enough time to draw!" << endl;
 		} else {
-			cout << "Sleeping for " << dt << " milliseconds" << endl;
+			// cout << "Sleeping for " << dt << " milliseconds" << endl;
 		}
 		this_thread::sleep_for(milliseconds(dt));
 
