@@ -250,6 +250,30 @@ namespace AvxTests {
         return true;
     }
 
+    bool spreadsBytes() {
+        AvxBitArray array(false);
+
+        for (int i = 0; i < 32; i++) {
+            array.set(i, (i % 3 == 0));
+        }
+
+        array.spreadToBytes();
+        AvxArray bytes = array.toArray();
+        for (int i = 0; i < 32; i++) {
+            BYTE expected = (i % 3 == 0) ? 0xFF : 0x00;
+            if (bytes.bytes[i] != expected) return false;
+        }
+
+        array.setAll(true);
+        array.spreadToBytes();
+        bytes = array.toArray();
+        for (int i = 0; i < 32; i++) {
+            if (bytes.bytes[i] != 0xFF) return false;
+        }
+
+        return true;
+    }
+
     void runTests() {
         cout << "Testing AvxBitArray... " << endl;
         cout << "\tTest: sets zeros... " << printPassed(setsZeros()) << endl;
@@ -266,6 +290,7 @@ namespace AvxTests {
         cout << "\tTest: xors bits... " << printPassed(xorsBits()) << endl;
         cout << "\tTest: checks equality... " << printPassed(checksEquality()) << endl;
         cout << "\tTest: checks less than... " << printPassed(checksLessThan()) << endl;
+        cout << "\tTest: spreads to bytes... " << printPassed(spreadsBytes()) << endl;
     }
 
 };

@@ -125,15 +125,8 @@ void handleMouse(GLFWwindow* window, MouseData& mouseData, int& windowX, int& wi
 	double xpos, ypos;
 	glfwGetCursorPos(window, &xpos, &ypos);
 
-	if (mouseData.mouseDown) {
-		double dx = -(xpos - mouseData.panStart.mouseX);
-		double dy = ypos - mouseData.panStart.mouseY;
-		windowX = mouseData.panStart.windowX + dx;
-		windowY = mouseData.panStart.windowY + dy;
-	}
-
 	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	if (state == GLFW_PRESS) {
+	if (state == GLFW_PRESS && !mouseData.mouseDown) {
 		mouseData.mouseDown = true;
 		mouseData.panStart.mouseX = xpos;
 		mouseData.panStart.mouseY = ypos;
@@ -141,6 +134,13 @@ void handleMouse(GLFWwindow* window, MouseData& mouseData, int& windowX, int& wi
 		mouseData.panStart.windowY = windowY;
 	} else if (state == GLFW_RELEASE) {
 		mouseData.mouseDown = false;
+	}
+
+	if (mouseData.mouseDown) {
+		double dx = -(xpos - mouseData.panStart.mouseX);
+		double dy = ypos - mouseData.panStart.mouseY;
+		windowX = mouseData.panStart.windowX + dx;
+		windowY = mouseData.panStart.windowY + dy;
 	}
 }
 
@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
 				}
 			#endif
 
-			// this_thread::sleep_for(milliseconds(1));
+			this_thread::sleep_for(milliseconds(1));
 		}
 	});
 

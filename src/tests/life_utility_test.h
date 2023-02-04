@@ -18,17 +18,17 @@ namespace LifeUtilTests {
             src.set(i, i % 3 == 0);
         }
 
-        Utility::shiftLeft(src, dst, false);
+        Utility::shiftLeft(src, dst, 0xF0);
         for (size_t i = 0; i < AVX_SIZE - 1; i++) {
             if (src.get(i + 1) != dst.get(i)) return false;
         }
         if (dst.get(255)) return false;
 
-        Utility::shiftLeft(src, dst, true);
+        Utility::shiftLeft(src, dst, 0x01);
         if (!dst.get(255)) return false;
 
         src.zero();
-        Utility::shiftLeft(src, dst, true);
+        Utility::shiftLeft(src, dst, 0xFF);
         if (!dst.get(255)) return false;
         if (dst.popcount() != 1) return false;
 
@@ -43,17 +43,17 @@ namespace LifeUtilTests {
             src.set(i, i % 3 == 0);
         }
 
-        Utility::shiftRight(src, dst, false);
+        Utility::shiftRight(src, dst, 0x0F);
         for (size_t i = 0; i < AVX_SIZE - 1; i++) {
             if (src.get(i) != dst.get(i + 1)) return false;
         }
         if (dst.get(0)) return false;
 
-        Utility::shiftRight(src, dst, true);
+        Utility::shiftRight(src, dst, 0xFF);
         if (!dst.get(0)) return false;
 
         src.zero();
-        Utility::shiftRight(src, dst, true);
+        Utility::shiftRight(src, dst, 0x80);
         if (!dst.get(0)) return false;
         if (dst.popcount() != 1) return false;
 

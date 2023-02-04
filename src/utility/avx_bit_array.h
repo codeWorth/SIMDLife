@@ -349,7 +349,8 @@ public:
 	    __m256i zeros = _mm256_set1_epi8(0x00);
 
         data = _mm256_and_si256(data, maskBits);	// extract each packed bit to be the only one present in the byte
-        data = _mm256_cmpgt_epi8(data, zeros);		// check which bytes had a 1, filling the byte with 1s if they do
+        data = _mm256_cmpeq_epi8(data, zeros);      // check which bytes had a 1, filling the byte with 0s if they do
+        data = _mm256_xor_si256(data, _mm256_set1_epi8(0xFF));  // bitwise not
     }
 
     // When written to an array, index 0-7 corresponds to byte 0
