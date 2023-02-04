@@ -14,8 +14,8 @@ const int WINDOW_WIDTH = AVX_SIZE * 7;   // must be a factor of AVX_SIZE
 const int WINDOW_HEIGHT = 1000;
 const int PIXEL_COUNT = WINDOW_WIDTH * WINDOW_HEIGHT;
 
-const int CELLS_WIDTH = WINDOW_WIDTH;
-const int CELLS_HEIGHT = WINDOW_HEIGHT;
+const int CELLS_WIDTH = WINDOW_WIDTH * 4;
+const int CELLS_HEIGHT = WINDOW_HEIGHT * 4;
 
 union AvxArray {
     alignas(32) BYTE bytes[32];

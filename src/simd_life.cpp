@@ -78,18 +78,32 @@ void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 	}
 	swapMutex.unlock();
 
+	if (py0 < 0) {
+		py0 = 0;
+	} else if (py0 > CELLS_HEIGHT - WINDOW_HEIGHT) {
+		py0 = CELLS_HEIGHT - WINDOW_HEIGHT;
+	}
+
+	if (px0 < 0) {
+		px0 = 0;
+	} else if (px0 > CELLS_WIDTH - WINDOW_WIDTH) {
+		px0 = CELLS_WIDTH - WINDOW_WIDTH;
+	}
+
+	int px0_bitshift = px0 % 8;
+	int px0_byteshift = px0 / 8;
 	AvxBitArray row;
 	for (int pixI = 0; pixI < WINDOW_HEIGHT; pixI += 1) {
-		int cellI = pixI + 1 - py0;
+		int cellI = pixI + 1 + py0;
 
 		for (int pixJ = 0; pixJ < WINDOW_WIDTH; pixJ += 32) { // 256 bits means we can only process 32 pixels at a time
 
 			if (cellI < 1 || cellI >= height+1) {
 				row.zero();
 			} else {
-				int cellJ = (pixJ - px0) / 8 + 32;
-				// row <<= px0 % 8;
+				int cellJ = pixJ/8 + px0_byteshift + 32;
 				row.setAllUnaligned(drawCells[cellI] + cellJ);
+				row >>= px0_bitshift;
 				row.spreadToBytes();
 			}
 

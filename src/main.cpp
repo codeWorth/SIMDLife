@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 
 		high_resolution_clock timer;
 		int count = 0;
-		const int maxCount = 2048;
+		const int maxCount = 1024;
 
 		auto t0 = timer.now();
 		while (true) {
