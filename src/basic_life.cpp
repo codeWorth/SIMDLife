@@ -69,7 +69,7 @@ void BasicLife::tick() {
 	swapMutex.unlock();
 }
 
-void BasicLife::draw(BYTE* pixelBuffer, int px0, int py0) {
+void BasicLife::draw(BYTE* pixelBuffer, int& px0, int& py0) {
 	swapMutex.lock();
 	for (int i = 0; i < WINDOW_HEIGHT; i++) {
 		memcpy(&pixelBuffer[i * WINDOW_WIDTH], cells[i+1], WINDOW_WIDTH);

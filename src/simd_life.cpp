@@ -71,7 +71,7 @@ void SIMDLife::tick() {
 	swapMutex.unlock();
 }
 
-void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
+void SIMDLife::draw(BYTE* pixelBuffer, int& px0, int& py0) {
 	swapMutex.lock();
 	for (int i = 1; i < height+1; i++) {
 		memcpy(drawCells[i], cells[i], rowLen);

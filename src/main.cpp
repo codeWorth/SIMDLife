@@ -111,6 +111,39 @@ GLuint setupShaderProgram() {
 	arr[j] = l; \
 }
 
+
+
+struct MouseData {
+	bool mouseDown = false;
+	struct PanStart {
+		double mouseX, mouseY;
+		int windowX, windowY;
+	} panStart;
+};
+
+void handleMouse(GLFWwindow* window, MouseData& mouseData, int& windowX, int& windowY) {
+	double xpos, ypos;
+	glfwGetCursorPos(window, &xpos, &ypos);
+
+	if (mouseData.mouseDown) {
+		double dx = -(xpos - mouseData.panStart.mouseX);
+		double dy = ypos - mouseData.panStart.mouseY;
+		windowX = mouseData.panStart.windowX + dx;
+		windowY = mouseData.panStart.windowY + dy;
+	}
+
+	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+	if (state == GLFW_PRESS) {
+		mouseData.mouseDown = true;
+		mouseData.panStart.mouseX = xpos;
+		mouseData.panStart.mouseY = ypos;
+		mouseData.panStart.windowX = windowX;
+		mouseData.panStart.windowY = windowY;
+	} else if (state == GLFW_RELEASE) {
+		mouseData.mouseDown = false;
+	}
+}
+
 int main(int argc, char* argv[]) {
 
 	// Drawing code is as simple as possible while still being fast here.
@@ -185,12 +218,18 @@ int main(int argc, char* argv[]) {
 	const long millisPerFrame = 16; // 60 fps
 	BYTE* pixelBuffer = (BYTE*)_mm_malloc(sizeof(BYTE)*PIXEL_COUNT, 32);
 
+	MouseData mouseData;
+	int windowX = 0;
+	int windowY = 0;
+
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_TRUE);
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
 
 		auto t0 = timer.now();
 
-		life->draw(pixelBuffer, 0, 0);
+		handleMouse(window, mouseData, windowX, windowY);
+		life->draw(pixelBuffer, windowX, windowY);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 
 		glEnableVertexAttribArray(0);
