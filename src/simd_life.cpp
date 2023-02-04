@@ -5,7 +5,8 @@
 #include <random>
 
 SIMDLife::SIMDLife(int width, int height, std::random_device& rd) : 
-	width(width), height(height), rowLen(width/8+33), 
+	width(width), height(height), 
+	chunksAcross(width/16 + 2), chunksDown(width/16 + 2),
 	eng(rd()), dist(0, 255)
 {
 	this->cells = new BYTE*[height+2];

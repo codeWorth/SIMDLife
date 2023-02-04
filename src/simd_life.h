@@ -21,8 +21,10 @@ private:
 	std::uniform_int_distribution<uint8_t> dist;
 	const int width;
 	const int height;
-	const int rowLen;
+	const int chunksAcross;
+	const int chunksDown;
 
+	// cells are stored in 16x16 squares, squares are arranged as normal (scan across)
 	BYTE** cells;
 	BYTE** nextCells;
 

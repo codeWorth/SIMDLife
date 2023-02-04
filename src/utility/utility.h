@@ -17,37 +17,11 @@ namespace Utility {
 		neighbors[j] = x | neighbors[j]; \
 	} 
 
-	void shiftLeft(const AvxBitArray& bits, AvxBitArray& shiftedBits, BYTE rightBorder) {
-		// When drawn onscreen, the least byte (index 0-7) will be on the left.
-		// Therefore, shifting left by 8 should remove this byte.
-		// Counterintuitively, this is accomplished by a right shift.
-		shiftedBits = bits >> 1;
-		if ((rightBorder & 0x01) != 0) {
-			__m256i rightmost = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
-			shiftedBits |= rightmost;
-		}
-	}
-
-	void shiftRight(const AvxBitArray& bits, AvxBitArray& shiftedBits, BYTE leftBorder) {
-		shiftedBits = bits << 1;
-		if ((leftBorder & 0x80) != 0) {
-			__m256i leftmost = _mm256_set_epi64x(0, 0, 0, 1);
-			shiftedBits |= leftmost;
-		}
-	}
-
 	void nextState(BYTE** cells, int row, int column, BYTE* nextCells) {
 		AvxBitArray neighbors[8];
 		AvxBitArray state = AvxBitArray(cells[row] + column);
-		neighbors[1].setAll(cells[row-1] + column); 						// top middle
-		neighbors[6].setAll(cells[row+1] + column); 						// bottom middle
 
-		shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
-		shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
-		shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
-		shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
-		shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
-		shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
+		
 
 		// From find_net
 		CMP_SWAP(0, 4);
