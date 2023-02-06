@@ -80,10 +80,16 @@ GLuint setupShaderProgram() {
 		"#version 330 core\n\
 		layout(location = 0) in vec3 vertexPos;\
 		out vec2 UV;\
+		uniform float zoomAmount;\
+		uniform float windowX;\
+		uniform float windowY;\
 		void main() {\
 			gl_Position.xyz = vertexPos;\
 			gl_Position.w = 1.0;\
-			UV = vec2(gl_Position.x/2 + 0.5, gl_Position.y/2 + 0.5);\
+			UV = vec2(\
+				(gl_Position.x/2 + 0.5) / zoomAmount + windowX, \
+				(-gl_Position.y/2 + 0.5) / zoomAmount + windowY \
+			);\
 		}",
 		GL_VERTEX_SHADER,
 		shaderIds[0]
@@ -104,43 +110,94 @@ GLuint setupShaderProgram() {
 
 }
 
-#define CMP_SWAP(i, j) { \
-	int l = std::min(arr[i], arr[j]); \
-	int h = std::max(arr[i], arr[j]); \
-	arr[i] = h; \
-	arr[j] = l; \
-}
-
-
-
 struct MouseData {
 	bool mouseDown = false;
+	double mouseX, mouseY;
 	struct PanStart {
 		double mouseX, mouseY;
 		int windowX, windowY;
 	} panStart;
 };
 
-void handleMouse(GLFWwindow* window, MouseData& mouseData, int& windowX, int& windowY) {
-	double xpos, ypos;
-	glfwGetCursorPos(window, &xpos, &ypos);
+struct FrameData {
+	int x = 0;
+	int y = 0;
+	struct Shader {
+		float windowX = 0;
+		float windowY = 0;
+		float zoom = 1.0f;
+	} shaderData;
+};
 
-	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	if (state == GLFW_PRESS && !mouseData.mouseDown) {
-		mouseData.mouseDown = true;
-		mouseData.panStart.mouseX = xpos;
-		mouseData.panStart.mouseY = ypos;
-		mouseData.panStart.windowX = windowX;
-		mouseData.panStart.windowY = windowY;
-	} else if (state == GLFW_RELEASE) {
-		mouseData.mouseDown = false;
+struct WindowData {
+	MouseData mouseData;
+	FrameData frameData;
+};
+
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+
+	windowData->mouseData.mouseX = xpos;
+	windowData->mouseData.mouseY = ypos;
+
+	if (windowData->mouseData.mouseDown) {
+		double dx = -(xpos - windowData->mouseData.panStart.mouseX);
+		double dy = -(ypos - windowData->mouseData.panStart.mouseY);
+		dx /= windowData->frameData.shaderData.zoom;
+		dy /= windowData->frameData.shaderData.zoom;
+		windowData->frameData.x = windowData->mouseData.panStart.windowX + dx;
+		windowData->frameData.y = windowData->mouseData.panStart.windowY + dy;
+	}
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS && !windowData->mouseData.mouseDown) {
+			windowData->mouseData.mouseDown = true;
+			windowData->mouseData.panStart.mouseX = windowData->mouseData.mouseX;
+			windowData->mouseData.panStart.mouseY = windowData->mouseData.mouseY;
+			windowData->mouseData.panStart.windowX = windowData->frameData.x;
+			windowData->mouseData.panStart.windowY = windowData->frameData.y;
+		} else if (action == GLFW_RELEASE) {
+			windowData->mouseData.mouseDown = false;
+		}
+	}
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	const double scrollScaling = 0.1;
+	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+
+	float oldZoom = windowData->frameData.shaderData.zoom;
+	float newZoom = oldZoom * (1 + scrollScaling * yoffset);
+	if (newZoom < 1) {
+		newZoom = 1;
+	} else if (newZoom > 32) {
+		newZoom = 32;
+	}
+	windowData->frameData.shaderData.zoom = newZoom;
+
+	if (newZoom == 1) {
+		windowData->frameData.shaderData.windowX = 0;
+		windowData->frameData.shaderData.windowY = 0;
+	} else {
+		windowData->frameData.shaderData.windowX += windowData->mouseData.mouseX * ((1/oldZoom) - (1/newZoom));
+		windowData->frameData.shaderData.windowY += windowData->mouseData.mouseY * ((1/oldZoom) - (1/newZoom));
 	}
 
-	if (mouseData.mouseDown) {
-		double dx = -(xpos - mouseData.panStart.mouseX);
-		double dy = ypos - mouseData.panStart.mouseY;
-		windowX = mouseData.panStart.windowX + dx;
-		windowY = mouseData.panStart.windowY + dy;
+	const float maxWindowX = WINDOW_WIDTH * (1 - (1/newZoom));
+	const float maxWindowY = WINDOW_HEIGHT * (1 - (1/newZoom));
+	if (windowData->frameData.shaderData.windowX < 0) {
+		windowData->frameData.shaderData.windowX = 0;
+	} else if (windowData->frameData.shaderData.windowX > maxWindowX) {
+		windowData->frameData.shaderData.windowX = maxWindowX;
+	}
+	if (windowData->frameData.shaderData.windowY < 0) {
+		windowData->frameData.shaderData.windowY = 0;
+	} else if (windowData->frameData.shaderData.windowY > maxWindowY) {
+		windowData->frameData.shaderData.windowY = maxWindowY;
 	}
 }
 
@@ -169,6 +226,7 @@ int main(int argc, char* argv[]) {
 	glfwSwapInterval(1);
 
 	GLuint shaderProgram = setupShaderProgram();
+	glUseProgram(shaderProgram);
 	
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -183,6 +241,10 @@ int main(int argc, char* argv[]) {
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE_VERTECIES), SQUARE_VERTECIES, GL_STATIC_DRAW);
+
+	GLint zoomAmount = glGetUniformLocation(shaderProgram, "zoomAmount");
+	GLint windowX = glGetUniformLocation(shaderProgram, "windowX");
+	GLint windowY = glGetUniformLocation(shaderProgram, "windowY");
 
 	random_device rd;
 	SIMDLife* life = new SIMDLife(CELLS_WIDTH, CELLS_HEIGHT, rd);
@@ -218,24 +280,25 @@ int main(int argc, char* argv[]) {
 	const long millisPerFrame = 16; // 60 fps
 	BYTE* pixelBuffer = (BYTE*)_mm_malloc(sizeof(BYTE)*PIXEL_COUNT, 32);
 
-	MouseData mouseData;
-	int windowX = 0;
-	int windowY = 0;
+	WindowData windowData;
+	glfwSetWindowUserPointer(window, &windowData);
 
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_TRUE);
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
 
 		auto t0 = timer.now();
 
-		handleMouse(window, mouseData, windowX, windowY);
-		life->draw(pixelBuffer, windowX, windowY);
+		glUniform1f(zoomAmount, windowData.frameData.shaderData.zoom);
+		glUniform1f(windowX, windowData.frameData.shaderData.windowX / (float) WINDOW_WIDTH);
+		glUniform1f(windowY, windowData.frameData.shaderData.windowY / (float) WINDOW_HEIGHT);
+		life->draw(pixelBuffer, windowData.frameData.x, windowData.frameData.y);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		glUseProgram(shaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glDisableVertexAttribArray(0);
 
