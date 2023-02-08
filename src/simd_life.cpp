@@ -71,24 +71,12 @@ void SIMDLife::tick() {
 	swapMutex.unlock();
 }
 
-void SIMDLife::draw(BYTE* pixelBuffer, int& px0, int& py0) {
+void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 	swapMutex.lock();
 	for (int i = 1; i < height+1; i++) {
 		memcpy(drawCells[i], cells[i], rowLen);
 	}
 	swapMutex.unlock();
-
-	if (py0 < 0) {
-		py0 = 0;
-	} else if (py0 > CELLS_HEIGHT - WINDOW_HEIGHT) {
-		py0 = CELLS_HEIGHT - WINDOW_HEIGHT;
-	}
-
-	if (px0 < 0) {
-		px0 = 0;
-	} else if (px0 > CELLS_WIDTH - WINDOW_WIDTH) {
-		px0 = CELLS_WIDTH - WINDOW_WIDTH;
-	}
 
 	int px0_bitshift = px0 % 8;
 	int px0_byteshift = px0 / 8;

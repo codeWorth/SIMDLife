@@ -5,12 +5,11 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <algorithm>
 
 #include "simd_life.h"
 #include "basic_life.h"
 #include "life.h"
-
-#define LOG_TICK
 
 using namespace std::chrono;
 using namespace std;
@@ -110,95 +109,135 @@ GLuint setupShaderProgram() {
 
 }
 
-struct MouseData {
+struct MousePosition {
+	double x;
+	double y;
+};
+
+struct WindowPosition {
+	double x;
+	double y;
+};
+
+struct GameState {
+	bool playing = true;
+	bool frameAdvance = false;
+	bool shouldEnd = false;
+};
+
+struct AppData {
 	bool mouseDown = false;
-	double mouseX, mouseY;
-	struct PanStart {
-		double mouseX, mouseY;
-		int windowX, windowY;
+	float zoom = 1.0f;
+	MousePosition mouse;
+	WindowPosition window;
+	struct {
+		MousePosition mouse;
+		WindowPosition window;
 	} panStart;
+
+	GameState gameState;
 };
 
-struct FrameData {
-	int x = 0;
-	int y = 0;
-	struct Shader {
-		float windowX = 0;
-		float windowY = 0;
-		float zoom = 1.0f;
-	} shaderData;
-};
-
-struct WindowData {
-	MouseData mouseData;
-	FrameData frameData;
-};
+void clampWindowPosition(double& x, double& y, float zoom) {
+	const double maxWindowX = CELLS_WIDTH - WINDOW_WIDTH / zoom;
+	const double maxWindowY = CELLS_HEIGHT - WINDOW_HEIGHT / zoom;
+	x = clamp(x, (double)0, maxWindowX);
+	y = clamp(y, (double)0, maxWindowY);
+}
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+	AppData* appData = (AppData *)glfwGetWindowUserPointer(window);
 
-	windowData->mouseData.mouseX = xpos;
-	windowData->mouseData.mouseY = ypos;
+	appData->mouse.x = xpos;
+	appData->mouse.y = ypos;
 
-	if (windowData->mouseData.mouseDown) {
-		double dx = -(xpos - windowData->mouseData.panStart.mouseX);
-		double dy = -(ypos - windowData->mouseData.panStart.mouseY);
-		dx /= windowData->frameData.shaderData.zoom;
-		dy /= windowData->frameData.shaderData.zoom;
-		windowData->frameData.x = windowData->mouseData.panStart.windowX + dx;
-		windowData->frameData.y = windowData->mouseData.panStart.windowY + dy;
+	if (appData->mouseDown) {
+		double dx = -(xpos - appData->panStart.mouse.x);
+		double dy = -(ypos - appData->panStart.mouse.y);
+		dx /= appData->zoom;
+		dy /= appData->zoom;
+
+		appData->window.x = appData->panStart.window.x + dx;
+		appData->window.y = appData->panStart.window.y + dy;
+		clampWindowPosition(appData->window.x, appData->window.y, appData->zoom);
 	}
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+	AppData* appData = (AppData *)glfwGetWindowUserPointer(window);
 
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		if (action == GLFW_PRESS && !windowData->mouseData.mouseDown) {
-			windowData->mouseData.mouseDown = true;
-			windowData->mouseData.panStart.mouseX = windowData->mouseData.mouseX;
-			windowData->mouseData.panStart.mouseY = windowData->mouseData.mouseY;
-			windowData->mouseData.panStart.windowX = windowData->frameData.x;
-			windowData->mouseData.panStart.windowY = windowData->frameData.y;
+		if (action == GLFW_PRESS && !appData->mouseDown) {
+			appData->mouseDown = true;
+			appData->panStart.mouse.x = appData->mouse.x;
+			appData->panStart.mouse.y = appData->mouse.y;
+			appData->panStart.window.x = appData->window.x;
+			appData->panStart.window.y = appData->window.y;
 		} else if (action == GLFW_RELEASE) {
-			windowData->mouseData.mouseDown = false;
+			appData->mouseDown = false;
 		}
 	}
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	const double scrollScaling = 0.1;
-	WindowData* windowData = (WindowData *)glfwGetWindowUserPointer(window);
+	AppData* appData = (AppData *)glfwGetWindowUserPointer(window);
 
-	float oldZoom = windowData->frameData.shaderData.zoom;
+	float oldZoom = appData->zoom;
 	float newZoom = oldZoom * (1 + scrollScaling * yoffset);
-	if (newZoom < 1) {
-		newZoom = 1;
-	} else if (newZoom > 32) {
-		newZoom = 32;
-	}
-	windowData->frameData.shaderData.zoom = newZoom;
+	newZoom = clamp(newZoom, 1.f, 32.f);
+	appData->zoom = newZoom;
 
-	if (newZoom == 1) {
-		windowData->frameData.shaderData.windowX = 0;
-		windowData->frameData.shaderData.windowY = 0;
-	} else {
-		windowData->frameData.shaderData.windowX += windowData->mouseData.mouseX * ((1/oldZoom) - (1/newZoom));
-		windowData->frameData.shaderData.windowY += windowData->mouseData.mouseY * ((1/oldZoom) - (1/newZoom));
+	appData->window.x += appData->mouse.x * ((1/oldZoom) - (1/newZoom));
+	appData->window.y += appData->mouse.y * ((1/oldZoom) - (1/newZoom));
+
+	clampWindowPosition(appData->window.x, appData->window.y, appData->zoom);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	AppData* appData = (AppData *)glfwGetWindowUserPointer(window);
+
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        appData->gameState.playing = !appData->gameState.playing;
 	}
 
-	const float maxWindowX = WINDOW_WIDTH * (1 - (1/newZoom));
-	const float maxWindowY = WINDOW_HEIGHT * (1 - (1/newZoom));
-	if (windowData->frameData.shaderData.windowX < 0) {
-		windowData->frameData.shaderData.windowX = 0;
-	} else if (windowData->frameData.shaderData.windowX > maxWindowX) {
-		windowData->frameData.shaderData.windowX = maxWindowX;
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        appData->gameState.frameAdvance = true;
 	}
-	if (windowData->frameData.shaderData.windowY < 0) {
-		windowData->frameData.shaderData.windowY = 0;
-	} else if (windowData->frameData.shaderData.windowY > maxWindowY) {
-		windowData->frameData.shaderData.windowY = maxWindowY;
+
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+		appData->gameState.playing = false;
+		appData->gameState.shouldEnd = true;
 	}
+}
+
+void setShaderParams(AppData& appData, GLint zoomAmount, GLint windowX, GLint windowY) {
+	glUniform1f(zoomAmount, appData.zoom);
+
+	const int maxX = CELLS_WIDTH - WINDOW_WIDTH;
+	const int maxY = CELLS_HEIGHT - WINDOW_HEIGHT;
+
+	int drawX = clamp((int) appData.window.x, 0, maxX);
+	int drawY = clamp((int) appData.window.y, 0, maxY);
+
+	double windowXVal = appData.window.x - drawX;
+	double windowYVal = appData.window.y - drawY;
+	const double maxWindowX = WINDOW_WIDTH * (1 - (1/appData.zoom));
+	const double maxWindowY = WINDOW_HEIGHT * (1 - (1/appData.zoom));
+	windowXVal = clamp(windowXVal, (double)0, maxWindowX);
+	windowYVal = clamp(windowYVal, (double)0, maxWindowY);
+
+	glUniform1f(windowX, (float) (windowXVal / WINDOW_WIDTH));
+	glUniform1f(windowY, (float) (windowYVal / WINDOW_HEIGHT));
+}
+
+void drawLife(AppData& appData, SIMDLife* life, BYTE* pixelBuffer) {
+	const int maxX = CELLS_WIDTH - WINDOW_WIDTH;
+	const int maxY = CELLS_HEIGHT - WINDOW_HEIGHT;
+
+	int drawX = clamp((int) appData.window.x, 0, maxX);
+	int drawY = clamp((int) appData.window.y, 0, maxY);
+	life->draw(pixelBuffer, drawX, drawY);
 }
 
 int main(int argc, char* argv[]) {
@@ -209,6 +248,7 @@ int main(int argc, char* argv[]) {
 	// This seems to be plenty fast for my purposes.
 
 	GLFWwindow* window;
+	AppData appData;
 
 	if (!glfwInit()) {
 		glfwTerminate();
@@ -251,7 +291,7 @@ int main(int argc, char* argv[]) {
 	// BasicLife* life = new BasicLife(CELLS_SIZE, rd);
 	life->setup();
 
-	thread PHYSICS_THREAD([life]() {
+	thread PHYSICS_THREAD([](SIMDLife* life, AppData& appData) {
 		this_thread::sleep_for(milliseconds(500));	// given the window half a second to open
 
 		high_resolution_clock timer;
@@ -260,7 +300,12 @@ int main(int argc, char* argv[]) {
 
 		auto t0 = timer.now();
 		while (true) {
-			life->tick();
+			if (appData.gameState.playing) {
+				life->tick();
+			} else if (appData.gameState.frameAdvance) {
+				life->tick();
+				appData.gameState.frameAdvance = false;
+			}
 
 			#ifdef LOG_TICK
 				count++;
@@ -274,26 +319,24 @@ int main(int argc, char* argv[]) {
 
 			this_thread::sleep_for(milliseconds(1));
 		}
-	});
+	}, life, ref(appData));
 
 	high_resolution_clock timer;
 	const long millisPerFrame = 16; // 60 fps
 	BYTE* pixelBuffer = (BYTE*)_mm_malloc(sizeof(BYTE)*PIXEL_COUNT, 32);
 
-	WindowData windowData;
-	glfwSetWindowUserPointer(window, &windowData);
+	glfwSetWindowUserPointer(window, &appData);
 
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
+	glfwSetKeyCallback(window, key_callback);
+	while (!appData.gameState.shouldEnd && glfwWindowShouldClose(window) == 0) {
 
 		auto t0 = timer.now();
 
-		glUniform1f(zoomAmount, windowData.frameData.shaderData.zoom);
-		glUniform1f(windowX, windowData.frameData.shaderData.windowX / (float) WINDOW_WIDTH);
-		glUniform1f(windowY, windowData.frameData.shaderData.windowY / (float) WINDOW_HEIGHT);
-		life->draw(pixelBuffer, windowData.frameData.x, windowData.frameData.y);
+		setShaderParams(appData, zoomAmount, windowX, windowY);
+		drawLife(appData, life, pixelBuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 
 		glEnableVertexAttribArray(0);
