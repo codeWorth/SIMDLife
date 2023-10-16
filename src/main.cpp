@@ -11,6 +11,8 @@
 #include "basic_life.h"
 #include "life.h"
 
+#define LOG_TICK
+
 using namespace std::chrono;
 using namespace std;
 
@@ -316,8 +318,6 @@ int main(int argc, char* argv[]) {
 					t0 = timer.now();
 				}
 			#endif
-
-			this_thread::sleep_for(milliseconds(1));
 		}
 	}, life, ref(appData));
 
