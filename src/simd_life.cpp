@@ -56,7 +56,7 @@ void SIMDLife::setup() {
 
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
-			memset(cells[i][j].bytes, ((j/32) % 2 == 0) ? 0x00 : 0xFF, 32);
+			memset(cells[i][j].bytes, ((i+j) % 3 == 0) ? 0x00 : 0xFF, 32);
 		}
 	}
 
@@ -81,7 +81,6 @@ void SIMDLife::tick() {
 }
 
 void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
-	return;
 	swapMutex.lock();
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
@@ -109,19 +108,23 @@ void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 				block.spreadToBytes(k, blockPixels + (k * 32));
 			}
 
-			int blockScreenY = i * 16 - py0;
-			int blockScreenX = j * 16 - px0;
-			for (int sdy = 0; sdy < 16; sdy++) {
-				int sy = sdy + blockScreenY;
-				if (sy < 0) continue;
-				if (sy >= WINDOW_HEIGHT) continue;
-
-				for (int sdx = 0; sdx < 16; sdx++) {
-					int sx = sdx + blockScreenX;
-					if (sx < 0) continue;
-					if (sx >= WINDOW_WIDTH) continue;
-					pixelBuffer[sy * WINDOW_WIDTH + sx] = blockPixels[sdy * 16 + sdx];
+			int blockSY = i * 16 - py0;
+			int blockSX = j * 16 - px0;
+			
+			int sdy = (blockSY < 0) ? -blockSY : 0;
+			int sdyLen = WINDOW_HEIGHT - blockSY;
+			if (sdyLen > 16) sdyLen = 16;
+			for (; sdy < sdyLen; sdy++) {
+				int sdx = 0;
+				if (blockSX < 0) {
+					sdx = -blockSX;
+					blockSX = 0;
 				}
+				int sdxLen = WINDOW_WIDTH - blockSX;
+				if (sdxLen > 16) sdxLen = 16;
+
+				int sy = blockSY + sdy;
+				memcpy(pixelBuffer + (sy * WINDOW_WIDTH + blockSX), blockPixels + (sdy * 16 + sdx), sdxLen);
 			}
 		}
 	}

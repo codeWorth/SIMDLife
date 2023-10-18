@@ -10,9 +10,8 @@ const std::uint_fast32_t OUTPUT_SPACE_SIZE = 1 << NEIGHBOR_COUNT;
 const std::uint_fast32_t AVX_SIZE = 256;
 
 
-const int WINDOW_WIDTH = 112 * 16 - 2;  // must be a factor of 16 - 2 (border should not be shown)
-const int WINDOW_HEIGHT = 63 * 16 - 2;  // must be a factor of 16 - 2 (border should not be shown)
-const int PIXEL_COUNT = WINDOW_WIDTH * WINDOW_HEIGHT;
+const int WINDOW_WIDTH = 112 * 16; // things seem to break when this isn't a nice number, ideally it would be - 2 for width and height
+const int WINDOW_HEIGHT = 63 * 16;
 
 const int CELLS_WIDTH = 112 * 16 * 4;   // must be a factor of 16
 const int CELLS_HEIGHT = 63 * 16 * 4;   // must be a factor of 16  
