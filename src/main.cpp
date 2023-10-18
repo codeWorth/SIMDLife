@@ -11,7 +11,7 @@
 #include "basic_life.h"
 #include "life.h"
 
-#define LOG_TICK
+// #define LOG_TICK
 
 using namespace std::chrono;
 using namespace std;
@@ -122,7 +122,7 @@ struct WindowPosition {
 };
 
 struct GameState {
-	bool playing = true;
+	bool playing = false;
 	bool frameAdvance = false;
 	bool shouldEnd = false;
 };
@@ -349,6 +349,7 @@ int main(int argc, char* argv[]) {
 		glfwPollEvents();
 
 		long dt = duration_cast<milliseconds>(timer.now() - t0).count(); // maintain max of 60 fps
+		cout << dt << endl;
 		dt = millisPerFrame - dt;
 		if (dt < 0) {
 			dt = 0L;
