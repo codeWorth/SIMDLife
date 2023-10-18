@@ -19,62 +19,62 @@ namespace Utility {
 		AvxBitArray state = AvxBitArray(cells[row][column].bytes);
 
 		neighbors[3] = state.shiftWordsLeft(1);	// middle left
-		if (column > 0) {
-			AvxBitArray left = AvxBitArray(cells[row][column - 1].bytes).shiftWordsRight(15);
-			neighbors[3] |= left;
-		}
+		// if (column > 0) {
+		// 	AvxBitArray left = AvxBitArray(cells[row][column - 1].bytes).shiftWordsRight(15);
+		// 	neighbors[3] |= left;
+		// }
 
 		neighbors[4] = state.shiftWordsRight(1);	// middle right
-		if (column < nColumns-1) {
-			AvxBitArray right = AvxBitArray(cells[row][column + 1].bytes).shiftWordsLeft(15);
-			neighbors[4] |= right;
-		}
+		// if (column < nColumns-1) {
+		// 	AvxBitArray right = AvxBitArray(cells[row][column + 1].bytes).shiftWordsLeft(15);
+		// 	neighbors[4] |= right;
+		// }
 
 		neighbors[1] = state << 16;			// top middle
 		neighbors[0] = neighbors[3] << 16;	// top left
 		neighbors[2] = neighbors[4] << 16;	// top right
-		if (row > 0) {
-			AvxBitArray above = AvxBitArray(cells[row-1][column].bytes);
-			above >>= 256-16;
-			neighbors[1] |= above;
+		// if (row > 0) {
+		// 	AvxBitArray above = AvxBitArray(cells[row-1][column].bytes);
+		// 	above >>= 256-16;
+		// 	neighbors[1] |= above;
 
-			AvxBitArray topLeft = above.shiftWordsLeft(1);
-			if (column > 0 && (cells[row-1][column-1].bytes[31] & 0x80) != 0) {
-				__m256i topLeftCell = _mm256_set_epi64x(0, 0, 0, 1);
-				topLeft |= topLeftCell;
-			}
-			neighbors[0] |= topLeft;
+		// 	AvxBitArray topLeft = above.shiftWordsLeft(1);
+		// 	if (column > 0 && (cells[row-1][column-1].bytes[31] & 0x80) != 0) {
+		// 		__m256i topLeftCell = _mm256_set_epi64x(0, 0, 0, 1);
+		// 		topLeft |= topLeftCell;
+		// 	}
+		// 	neighbors[0] |= topLeft;
 
-			AvxBitArray topRight = above.shiftWordsRight(1);
-			if (column < nColumns-1 && (cells[row-1][column+1].bytes[30] & 0x01) != 0) {
-				__m256i topRightCell = _mm256_set_epi64x(0, 0, 0, 0x8000);
-				topRight |= topRightCell;
-			}
-			neighbors[2] |= topRight;
-		}
+		// 	AvxBitArray topRight = above.shiftWordsRight(1);
+		// 	if (column < nColumns-1 && (cells[row-1][column+1].bytes[30] & 0x01) != 0) {
+		// 		__m256i topRightCell = _mm256_set_epi64x(0, 0, 0, 0x8000);
+		// 		topRight |= topRightCell;
+		// 	}
+		// 	neighbors[2] |= topRight;
+		// }
 
 		neighbors[6] = state >> 16;			// bottom middle
 		neighbors[5] = neighbors[3] >> 16;	// bottom left
 		neighbors[7] = neighbors[4] >> 16;	// bottom right
-		if (row < nRows-1) {
-			AvxBitArray below = AvxBitArray(cells[row+1][column].bytes);
-			below <<= 256-16;
-			neighbors[6] |= below;
+		// if (row < nRows-1) {
+		// 	AvxBitArray below = AvxBitArray(cells[row+1][column].bytes);
+		// 	below <<= 256-16;
+		// 	neighbors[6] |= below;
 
-			AvxBitArray bottomLeft = below.shiftWordsLeft(1);
-			if (column > 0 && (cells[row+1][column-1].bytes[1] & 0x80) != 0) {
-				__m256i bottomLeftCell = _mm256_set_epi64x(0x1000000000000, 0, 0, 0);
-				bottomLeft |= bottomLeftCell;
-			}
-			neighbors[5] |= bottomLeft;
+		// 	AvxBitArray bottomLeft = below.shiftWordsLeft(1);
+		// 	if (column > 0 && (cells[row+1][column-1].bytes[1] & 0x80) != 0) {
+		// 		__m256i bottomLeftCell = _mm256_set_epi64x(0x1000000000000, 0, 0, 0);
+		// 		bottomLeft |= bottomLeftCell;
+		// 	}
+		// 	neighbors[5] |= bottomLeft;
 
-			AvxBitArray bottomRight = below.shiftWordsRight(1);
-			if (column < nColumns-1 && (cells[row+1][column+1].bytes[0] & 0x01) != 0) {
-				__m256i bottomRightCell = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
-				bottomRight |= bottomRightCell;
-			}
-			neighbors[7] |= bottomRight;
-		}
+		// 	AvxBitArray bottomRight = below.shiftWordsRight(1);
+		// 	if (column < nColumns-1 && (cells[row+1][column+1].bytes[0] & 0x01) != 0) {
+		// 		__m256i bottomRightCell = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
+		// 		bottomRight |= bottomRightCell;
+		// 	}
+		// 	neighbors[7] |= bottomRight;
+		// }
 
 		// From find_net
 		CMP_SWAP(0, 4);
