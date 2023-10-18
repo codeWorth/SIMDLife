@@ -57,6 +57,10 @@ public:
         setAll(array);
     }
 
+    AvxBitArray(__m256i data) {
+        this->data = data;
+    }
+
     AvxBitArray(const BYTE* source) {
         data = _mm256_loadu_si256((__m256i*)source);
     }
@@ -305,6 +309,15 @@ public:
         AvxBitArray out(*this);
         out >>= amount;
         return out;
+    }
+
+    // shift 16 bit words left
+    AvxBitArray shiftWordsLeft(int count) const {
+        return AvxBitArray(_mm256_slli_epi16(data, count));
+    }
+    // shift 16 bit words right
+    AvxBitArray shiftWordsRight(int count) const {
+        return AvxBitArray(_mm256_srli_epi16(data, count));
     }
 
     bool operator==(const AvxBitArray& other) const {

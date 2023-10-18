@@ -48,17 +48,20 @@ void SIMDLife::setup() {
 	// 	240, 900, false, false, cells
 	// );
 
-	// for (int i = 1; i < height+1; i++) {
-	// 	for (int j = 32; j < rowLen - 1; j++) {
-	// 		cells[i][j] = (dist(eng) & dist(eng)) & 0xFF;
-	// 	}
-	// }
 
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
-			memset(cells[i][j].bytes, ((i+j) % 3 == 0) ? 0x00 : 0xFF, 32);
+			for (int k = 0; k < 32; k++) {
+				cells[i][j].bytes[k] = (dist(eng) & dist(eng)) & 0xFF;
+			}
 		}
 	}
+
+	// for (int i = 0; i < blocksH; i++) {
+	// 	for (int j = 0; j < blocksW; j++) {
+	// 		memset(cells[i][j].bytes, ((i+j) % 3 != 0) ? 0x00 : 0xFF, 32);
+	// 	}
+	// }
 
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
@@ -71,7 +74,7 @@ void SIMDLife::setup() {
 void SIMDLife::tick() {
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
-			Utility::nextState(cells, i, j, nextCells[i] + j);
+			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW);
 		}
 	}
 
@@ -88,9 +91,6 @@ void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 		}
 	}
 	swapMutex.unlock();
-
-	px0++;	// px0, py0 = (0,0) actually draws starting at (1,1) of the cells
-	py0++;
 
 	int startBlockI = py0 / 16;
 	int startBlockJ = px0 / 16;
@@ -114,15 +114,18 @@ void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 			int sdy = (blockSY < 0) ? -blockSY : 0;
 			int sdyLen = WINDOW_HEIGHT - blockSY;
 			if (sdyLen > 16) sdyLen = 16;
-			for (; sdy < sdyLen; sdy++) {
-				int sdx = 0;
-				if (blockSX < 0) {
-					sdx = -blockSX;
-					blockSX = 0;
-				}
-				int sdxLen = WINDOW_WIDTH - blockSX;
-				if (sdxLen > 16) sdxLen = 16;
 
+			int sdx = 0;
+			int sdxLen = 16;
+			if (blockSX < 0) {
+				sdx = -blockSX;
+				sdxLen += blockSX;
+				blockSX = 0;
+			} else if (WINDOW_WIDTH - blockSX < 16) {
+				sdxLen = WINDOW_WIDTH - blockSX;
+			}
+
+			for (; sdy < sdyLen; sdy++) {
 				int sy = blockSY + sdy;
 				memcpy(pixelBuffer + (sy * WINDOW_WIDTH + blockSX), blockPixels + (sdy * 16 + sdx), sdxLen);
 			}

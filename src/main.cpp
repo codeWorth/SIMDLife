@@ -11,7 +11,7 @@
 #include "basic_life.h"
 #include "life.h"
 
-// #define LOG_TICK
+#define LOG_TICK
 
 using namespace std::chrono;
 using namespace std;
@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
 				count++;
 				if (count == maxCount) {
 					long dt = duration_cast<microseconds>(timer.now() - t0).count();
-					cout << (dt / maxCount) << " microsecond tick" << endl;
+					if (dt / maxCount > 0) cout << (dt / maxCount) << " microsecond tick" << endl;
 					count = 0;
 					t0 = timer.now();
 				}
@@ -349,7 +349,6 @@ int main(int argc, char* argv[]) {
 		glfwPollEvents();
 
 		long dt = duration_cast<milliseconds>(timer.now() - t0).count(); // maintain max of 60 fps
-		cout << dt << endl;
 		dt = millisPerFrame - dt;
 		if (dt < 0) {
 			dt = 0L;

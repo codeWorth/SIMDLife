@@ -2,9 +2,6 @@
 #include "avx_bit_array.h"
 #include <bitset>
 
-const uint32_t LSB = 0b1;
-const uint32_t MSB = 0b10000000000000000000000000000000;
-
 namespace Utility {
 	using namespace std;
 
@@ -15,39 +12,69 @@ namespace Utility {
 		auto x = neighbors[i]; \
 		neighbors[i] = x & neighbors[j]; \
 		neighbors[j] = x | neighbors[j]; \
-	} 
-
-	void shiftLeft(const AvxBitArray& bits, AvxBitArray& shiftedBits, BYTE rightBorder) {
-		// When drawn onscreen, the least byte (index 0-7) will be on the left.
-		// Therefore, shifting left by 8 should remove this byte.
-		// Counterintuitively, this is accomplished by a right shift.
-		shiftedBits = bits >> 1;
-		if ((rightBorder & 0x01) != 0) {
-			__m256i rightmost = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
-			shiftedBits |= rightmost;
-		}
 	}
 
-	void shiftRight(const AvxBitArray& bits, AvxBitArray& shiftedBits, BYTE leftBorder) {
-		shiftedBits = bits << 1;
-		if ((leftBorder & 0x80) != 0) {
-			__m256i leftmost = _mm256_set_epi64x(0, 0, 0, 1);
-			shiftedBits |= leftmost;
-		}
-	}
-
-	void nextState(AvxArray** cells, int row, int column, AvxArray* nextCells) {
+	void nextState(AvxArray** cells, int row, int column, AvxArray** nextCells, int nRows, int nColumns) {
 		AvxBitArray neighbors[8];
-		AvxBitArray state = AvxBitArray(cells[row] + column);
-		neighbors[1].setAll(cells[row-1] + column); 						// top middle
-		neighbors[6].setAll(cells[row+1] + column); 						// bottom middle
+		AvxBitArray state = AvxBitArray(cells[row][column].bytes);
 
-		// shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
-		// shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
-		// shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
-		// shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
-		// shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
-		// shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
+		neighbors[3] = state.shiftWordsLeft(1);	// middle left
+		if (column > 0) {
+			AvxBitArray left = AvxBitArray(cells[row][column - 1].bytes).shiftWordsRight(15);
+			neighbors[3] |= left;
+		}
+
+		neighbors[4] = state.shiftWordsRight(1);	// middle right
+		if (column < nColumns-1) {
+			AvxBitArray right = AvxBitArray(cells[row][column + 1].bytes).shiftWordsLeft(15);
+			neighbors[4] |= right;
+		}
+
+		neighbors[1] = state << 16;			// top middle
+		neighbors[0] = neighbors[3] << 16;	// top left
+		neighbors[2] = neighbors[4] << 16;	// top right
+		if (row > 0) {
+			AvxBitArray above = AvxBitArray(cells[row-1][column].bytes);
+			above >>= 256-16;
+			neighbors[1] |= above;
+
+			AvxBitArray topLeft = above.shiftWordsLeft(1);
+			if (column > 0 && (cells[row-1][column-1].bytes[31] & 0x80) != 0) {
+				__m256i topLeftCell = _mm256_set_epi64x(0, 0, 0, 1);
+				topLeft |= topLeftCell;
+			}
+			neighbors[0] |= topLeft;
+
+			AvxBitArray topRight = above.shiftWordsRight(1);
+			if (column < nColumns-1 && (cells[row-1][column+1].bytes[30] & 0x01) != 0) {
+				__m256i topRightCell = _mm256_set_epi64x(0, 0, 0, 0x8000);
+				topRight |= topRightCell;
+			}
+			neighbors[2] |= topRight;
+		}
+
+		neighbors[6] = state >> 16;			// bottom middle
+		neighbors[5] = neighbors[3] >> 16;	// bottom left
+		neighbors[7] = neighbors[4] >> 16;	// bottom right
+		if (row < nRows-1) {
+			AvxBitArray below = AvxBitArray(cells[row+1][column].bytes);
+			below <<= 256-16;
+			neighbors[6] |= below;
+
+			AvxBitArray bottomLeft = below.shiftWordsLeft(1);
+			if (column > 0 && (cells[row+1][column-1].bytes[1] & 0x80) != 0) {
+				__m256i bottomLeftCell = _mm256_set_epi64x(0x1000000000000, 0, 0, 0);
+				bottomLeft |= bottomLeftCell;
+			}
+			neighbors[5] |= bottomLeft;
+
+			AvxBitArray bottomRight = below.shiftWordsRight(1);
+			if (column < nColumns-1 && (cells[row+1][column+1].bytes[0] & 0x01) != 0) {
+				__m256i bottomRightCell = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
+				bottomRight |= bottomRightCell;
+			}
+			neighbors[7] |= bottomRight;
+		}
 
 		// From find_net
 		CMP_SWAP(0, 4);
@@ -101,7 +128,7 @@ namespace Utility {
 		// if we have exactly 3 neighbors we're alive regardless of current state
 		// if we have 2 or 3 neighbors, we can be alive if are already
 		AvxBitArray result = exactlyThree | (twoOrThree & state); 
-		// result.write(nextCells);
+		result.write(nextCells[row][column].bytes);
 	}
 
 	void drawPackedRLE(const char* rle, int x, int y, bool invertX, bool invertY, BYTE** cells) {
