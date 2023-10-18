@@ -36,18 +36,18 @@ namespace Utility {
 		}
 	}
 
-	void nextState(BYTE** cells, int row, int column, BYTE* nextCells) {
+	void nextState(AvxArray** cells, int row, int column, AvxArray* nextCells) {
 		AvxBitArray neighbors[8];
 		AvxBitArray state = AvxBitArray(cells[row] + column);
 		neighbors[1].setAll(cells[row-1] + column); 						// top middle
 		neighbors[6].setAll(cells[row+1] + column); 						// bottom middle
 
-		shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
-		shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
-		shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
-		shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
-		shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
-		shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
+		// shiftRight(neighbors[1], neighbors[0], cells[row-1][column-1 ]);	// top left
+		// shiftLeft (neighbors[1], neighbors[2], cells[row-1][column+32]);	// top right
+		// shiftRight(state,        neighbors[3], cells[row  ][column-1 ]);	// middle left
+		// shiftLeft (state,        neighbors[4], cells[row  ][column+32]);	// middle right
+		// shiftRight(neighbors[6], neighbors[5], cells[row+1][column-1 ]);	// bottom left
+		// shiftLeft (neighbors[6], neighbors[7], cells[row+1][column+32]);	// bottom right
 
 		// From find_net
 		CMP_SWAP(0, 4);
@@ -101,7 +101,7 @@ namespace Utility {
 		// if we have exactly 3 neighbors we're alive regardless of current state
 		// if we have 2 or 3 neighbors, we can be alive if are already
 		AvxBitArray result = exactlyThree | (twoOrThree & state); 
-		result.write(nextCells);
+		// result.write(nextCells);
 	}
 
 	void drawPackedRLE(const char* rle, int x, int y, bool invertX, bool invertY, BYTE** cells) {

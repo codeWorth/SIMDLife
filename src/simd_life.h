@@ -19,14 +19,15 @@ private:
 	
 	std::default_random_engine eng;
 	std::uniform_int_distribution<uint8_t> dist;
-	const int width;
-	const int height;
-	const int rowLen;
+	const int width; // given width in cells
+	const int height; // given height in cells
+	const int blocksW; // width in blocks (block is 16x16 cells)
+	const int blocksH; // height in blocks
 
-	BYTE** cells;
-	BYTE** nextCells;
+	AvxArray** cells;
+	AvxArray** nextCells;
 
 	std::mutex swapMutex;
-	BYTE** drawCells;
+	AvxArray** drawCells;
 
 };

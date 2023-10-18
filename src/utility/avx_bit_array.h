@@ -353,6 +353,16 @@ public:
         data = _mm256_xor_si256(data, _mm256_set1_epi8(0xFF));  // bitwise not
     }
 
+    // spreads the 32 bit word at the given index into 32 bytes in dest
+    void spreadToBytes(int index, BYTE* dest) {
+        __m256i saved = data;
+        data = (index < 4) ? data : _mm256_permute2f128_si256(data, data, 1);
+        data = _mm256_srli_si256(data, (index % 4) * 4);
+        spreadToBytes();
+        write(dest);
+        data = saved;
+    }
+
     // When written to an array, index 0-7 corresponds to byte 0
     // However, within the byte, it is still big-endian, meaning index 0 is the LSB of the byte
     AvxArray toArray() const {

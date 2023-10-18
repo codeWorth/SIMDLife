@@ -10,12 +10,12 @@ const std::uint_fast32_t OUTPUT_SPACE_SIZE = 1 << NEIGHBOR_COUNT;
 const std::uint_fast32_t AVX_SIZE = 256;
 
 
-const int WINDOW_WIDTH = AVX_SIZE * 7;   // must be a factor of AVX_SIZE
-const int WINDOW_HEIGHT = 1000;
+const int WINDOW_WIDTH = 112 * 16 - 2;  // must be a factor of 16 - 2 (border should not be shown)
+const int WINDOW_HEIGHT = 63 * 16 - 2;  // must be a factor of 16 - 2 (border should not be shown)
 const int PIXEL_COUNT = WINDOW_WIDTH * WINDOW_HEIGHT;
 
-const int CELLS_WIDTH = WINDOW_WIDTH * 4;
-const int CELLS_HEIGHT = WINDOW_HEIGHT * 4;
+const int CELLS_WIDTH = 112 * 16 * 4;   // must be a factor of 16
+const int CELLS_HEIGHT = 63 * 16 * 4;   // must be a factor of 16  
 
 union AvxArray {
     alignas(32) BYTE bytes[32];
