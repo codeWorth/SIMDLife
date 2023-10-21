@@ -14,17 +14,19 @@ SIMDLife::SIMDLife(int width, int height, std::random_device& rd) :
 	this->cells = new AvxArray*[blocksH];
 	this->nextCells = new AvxArray*[blocksH];
 	this->drawCells = new AvxArray*[blocksH];
+	this->blockPixels = (BYTE*)_mm_malloc(sizeof(BYTE) * 256, 32);
 }
 
 SIMDLife::~SIMDLife() {
 	for (int i = 0; i < blocksH; i++) {
-		delete[] cells[i];
-		delete[] nextCells[i];
-		delete[] drawCells[i];
+		free(cells[i]);
+		free(nextCells[i]);
+		free(drawCells[i]);
 	}
 	delete[] cells;
 	delete[] nextCells;
 	delete[] drawCells;
+	free(this->blockPixels);
 }
 
 void SIMDLife::setup() {
@@ -45,23 +47,19 @@ void SIMDLife::setup() {
 
 	// Utility::drawPackedRLE(
 	// 	"bob$2bo$3o!",
-	// 	240, 900, false, false, cells
+	// 	1, 10, false, true, cells
 	// );
 
 
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
 			for (int k = 0; k < 32; k++) {
-				cells[i][j].bytes[k] = (dist(eng) & dist(eng)) & 0xFF;
+				// cells[i][j].bytes[k] = (dist(eng) & dist(eng)) & 0xFF;
+				if (j < 16 || j >= 32) continue;
+				cells[i][j].bytes[k] = ((i+j) % 2 == 0) ? 0x00 : (0b1010101010101010 >> (k%3));
 			}
 		}
 	}
-
-	// for (int i = 0; i < blocksH; i++) {
-	// 	for (int j = 0; j < blocksW; j++) {
-	// 		memset(cells[i][j].bytes, ((i+j) % 3 != 0) ? 0x00 : 0xFF, 32);
-	// 	}
-	// }
 
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
@@ -75,6 +73,18 @@ void SIMDLife::tick() {
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
 			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW);
+		}
+	}
+
+	for (int i = 0; i < blocksH-1; i++) {
+		for (int j = 0; j < blocksW; j += 16) {
+			Utility::nextStateEdgeH(cells, i, j, blocksW, nextCells);
+		}
+	}
+
+	for (int i = 0; i < blocksH; i += 16) {
+		for (int j = 0; j < blocksW-1; j++) {
+			Utility::nextStateEdgeV(cells, i, j, nextCells);
 		}
 	}
 
@@ -99,7 +109,6 @@ void SIMDLife::draw(BYTE* pixelBuffer, int px0, int py0) {
 	int endBlockJ = (px0 + WINDOW_WIDTH - 1) / 16;	// if px0 = 0, WINDOW_WIDTH = 16, then we only need block 0
 
 	AvxBitArray block;
-	BYTE* blockPixels = (BYTE*)_mm_malloc(sizeof(BYTE) * 256, 32);
 
 	for (int i = startBlockI; i <= endBlockI; i++) {
 		for (int j = startBlockJ; j <= endBlockJ; j++) {

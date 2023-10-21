@@ -30,4 +30,5 @@ private:
 	std::mutex swapMutex;
 	AvxArray** drawCells;
 
+	BYTE* blockPixels;
 };

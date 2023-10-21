@@ -3,6 +3,7 @@
 #include <bitset>
 #include <immintrin.h>
 #include <algorithm>
+#include <iostream>
 #include "../constants.h"
 
 // index is the amount of chunks to shift by
@@ -311,13 +312,58 @@ public:
         return out;
     }
 
+    // 1 <= N < 64
+    template <unsigned int N> AvxBitArray shiftLeft() const {
+        __m256i mask = _mm256_permute2x128_si256(data, data, _MM_SHUFFLE(0,0,3,0));
+        auto rollover = _mm256_alignr_epi8(data, mask, 16-8);
+        rollover = _mm256_srli_epi64(rollover, 64 - N);   
+
+        auto output = _mm256_slli_epi64(data, N);
+        return AvxBitArray(_mm256_or_si256(output, rollover));
+    }
+    // 1 <= N < 64
+    template <unsigned int N> AvxBitArray shiftRight() const {
+        __m256i swap = _mm256_permute2x128_si256(data, data, 0x81);
+        auto rollover =  _mm256_alignr_epi8(swap, data, 8);
+        rollover = _mm256_slli_epi64(rollover, 64 - N);
+
+        auto output = _mm256_srli_epi64(data, N);
+        return AvxBitArray(_mm256_or_si256(output, rollover));
+    }
+
+    // shifts left by N bytes
+    template <unsigned int N> AvxBitArray shiftLeftBytes() {
+        __m256i mask = _mm256_permute2x128_si256(data, data, _MM_SHUFFLE(0,0,3,0));
+        return AvxBitArray(_mm256_alignr_epi8(data, mask, 16-N));
+    }
+    // shifts right by N bytes, max 16
+    template <unsigned int N> AvxBitArray shiftRightBytes() {
+        __m256i swap = _mm256_permute2x128_si256(data, data, 0x81); // put upper 128 in lower 128, clear upper 128
+        return AvxBitArray(_mm256_alignr_epi8(swap, data, N));
+    }
+
     // shift 16 bit words left
-    AvxBitArray shiftWordsLeft(int count) const {
-        return AvxBitArray(_mm256_slli_epi16(data, count));
+    template <unsigned int N> AvxBitArray shiftWordsLeft() const {
+        return AvxBitArray(_mm256_slli_epi16(data, N));
     }
     // shift 16 bit words right
-    AvxBitArray shiftWordsRight(int count) const {
-        return AvxBitArray(_mm256_srli_epi16(data, count));
+    template <unsigned int N> AvxBitArray shiftWordsRight() const {
+        return AvxBitArray(_mm256_srli_epi16(data, N));
+    }
+    // shift 16 bit words left in place
+    template <unsigned int N> void shiftWordsLeftInPlace() {
+        data = _mm256_slli_epi16(data, N);
+    }
+    void shiftWordsLeftInPlace(unsigned int N) {
+        data = _mm256_slli_epi16(data, N);
+    }
+    // shift 16 bit words right in place
+    template <unsigned int N> void shiftWordsRightInPlace() {
+        data = _mm256_srli_epi16(data, N);
+    }
+    
+    AvxBitArray blend(const AvxBitArray& b, __m256i mask) {
+        return _mm256_blendv_epi8(data, b.data, mask);
     }
 
     bool operator==(const AvxBitArray& other) const {
@@ -402,6 +448,7 @@ public:
             std::string bits = std::bitset<8>(values.bytes[i]).to_string();
             std::reverse(bits.begin(), bits.end());
             out += bits;
+            // out += std::to_string((int)values.bytes[i]);
         }
         return out;
     }

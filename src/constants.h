@@ -13,8 +13,8 @@ const std::uint_fast32_t AVX_SIZE = 256;
 const int WINDOW_WIDTH = 112 * 16; // things seem to break when this isn't a nice number, ideally it would be - 2 for width and height
 const int WINDOW_HEIGHT = 63 * 16;
 
-const int CELLS_WIDTH = 112 * 16 * 4;   // must be a factor of 16
-const int CELLS_HEIGHT = 63 * 16 * 4;   // must be a factor of 16  
+const int CELLS_WIDTH = AVX_SIZE * 28;   // must be a factor of AVX_SIZE
+const int CELLS_HEIGHT = AVX_SIZE * 13;   // must be a factor of AVX_SIZE  
 
 union AvxArray {
     alignas(32) BYTE bytes[32];
