@@ -311,6 +311,17 @@ public:
         return out;
     }
 
+    // shifts left by N bytes
+    template <unsigned int N> AvxBitArray shiftLeftBytes() {
+        __m256i mask = _mm256_permute2x128_si256(data, data, _MM_SHUFFLE(0,0,3,0));
+        return AvxBitArray(_mm256_alignr_epi8(data, mask, 16-N));
+    }
+    // shifts right by N bytes, max 16
+    template <unsigned int N> AvxBitArray shiftRightBytes() {
+        __m256i swap = _mm256_permute2x128_si256(data, data, 0x81); // put upper 128 in lower 128, clear upper 128
+        return AvxBitArray(_mm256_alignr_epi8(swap, data, N));
+    }
+
     // shift 16 bit words left
     AvxBitArray shiftWordsLeft(int count) const {
         return AvxBitArray(_mm256_slli_epi16(data, count));

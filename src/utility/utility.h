@@ -30,9 +30,9 @@ namespace Utility {
 			neighbors[4] |= right;
 		}
 
-		neighbors[1] = state << 16;			// top middle
-		neighbors[0] = neighbors[3] << 16;	// top left
-		neighbors[2] = neighbors[4] << 16;	// top right
+		neighbors[1] = state.shiftLeftBytes<2>();			// top middle
+		neighbors[0] = neighbors[3].shiftLeftBytes<2>();	// top left
+		neighbors[2] = neighbors[4].shiftLeftBytes<2>();	// top right
 		if (row > 0) {
 			AvxBitArray above = AvxBitArray(cells[row-1][column].bytes);
 			above >>= 256-16;
@@ -53,9 +53,9 @@ namespace Utility {
 			neighbors[2] |= topRight;
 		}
 
-		neighbors[6] = state >> 16;			// bottom middle
-		neighbors[5] = neighbors[3] >> 16;	// bottom left
-		neighbors[7] = neighbors[4] >> 16;	// bottom right
+		neighbors[6] = state.shiftRightBytes<2>();			// bottom middle
+		neighbors[5] = neighbors[3].shiftRightBytes<2>();	// bottom left
+		neighbors[7] = neighbors[4].shiftRightBytes<2>();	// bottom right
 		if (row < nRows-1) {
 			AvxBitArray below = AvxBitArray(cells[row+1][column].bytes);
 			below <<= 256-16;
