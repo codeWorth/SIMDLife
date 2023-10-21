@@ -2,9 +2,11 @@
 
 #include <mutex>
 #include <random>
+#include <unordered_map>
 
 #include "life.h"
 #include "constants.h"
+#include "utility/XXHash32.h"
 
 class SIMDLife: Life {
 public:
@@ -23,6 +25,7 @@ private:
 	const int height; // given height in cells
 	const int blocksW; // width in blocks (block is 16x16 cells)
 	const int blocksH; // height in blocks
+	std::unordered_map<AvxArray, AvxArray, AVX256_Hash, AVX256_Equal> blockLookup;
 
 	AvxArray** cells;
 	AvxArray** nextCells;

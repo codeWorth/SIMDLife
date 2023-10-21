@@ -54,9 +54,9 @@ void SIMDLife::setup() {
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
 			for (int k = 0; k < 32; k++) {
-				// cells[i][j].bytes[k] = (dist(eng) & dist(eng)) & 0xFF;
-				if (j < 16 || j >= 32) continue;
-				cells[i][j].bytes[k] = ((i+j) % 2 == 0) ? 0x00 : (0b1010101010101010 >> (k%3));
+				cells[i][j].bytes[k] = (dist(eng) & dist(eng)) & 0xFF;
+				// if (j < 16 || j >= 32) continue;
+				// cells[i][j].bytes[k] = ((i+j) % 2 == 0) ? 0x00 : (0b1010101010101010 >> (k%3));
 			}
 		}
 	}
@@ -72,7 +72,7 @@ void SIMDLife::setup() {
 void SIMDLife::tick() {
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
-			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW);
+			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW, blockLookup);
 		}
 	}
 

@@ -1,6 +1,8 @@
 #pragma once
+#include "XXHash32.h"
 #include "avx_bit_array.h"
 #include <iostream>
+#include <unordered_map>
 
 namespace Utility {
 	using namespace std;
@@ -49,9 +51,19 @@ namespace Utility {
 		return exactlyThree | (twoOrThree & state);
 	}
 
-	void nextState(AvxArray** cells, int row, int column, AvxArray** nextCells, int nRows, int nColumns) {
-		AvxBitArray neighbors[8];
+	void nextState(
+		AvxArray** cells, int row, int column, 
+		AvxArray** nextCells, int nRows, int nColumns,
+		std::unordered_map<AvxArray, AvxArray, AVX256_Hash, AVX256_Equal>& blocksLookup
+	) {
+		auto conv = blocksLookup.find(cells[row][column]);
+		if (conv != blocksLookup.end()) {
+			memcpy(nextCells[row][column].bytes, conv->second.bytes, 32);
+			return;
+		}
+
 		AvxBitArray state = AvxBitArray(cells[row][column].bytes);
+		AvxBitArray neighbors[8];
 
 		neighbors[3] = state.shiftWordsLeft<1>();			// middle left
 		neighbors[4] = state.shiftWordsRight<1>();			// middle right
@@ -65,6 +77,7 @@ namespace Utility {
 		AvxBitArray result = doCmpSwap(neighbors, state);
 		result &= _mm256_set_epi64x(0x7FFE7FFE7FFE, 0x7FFE7FFE7FFE7FFE, 0x7FFE7FFE7FFE7FFE, 0x7FFE7FFE7FFE0000); // crop edges out
 		result.write(nextCells[row][column].bytes);
+		result.write(blocksLookup[cells[row][column]].bytes);
 	}
 	
 	AvxBitArray gatherRow(AvxArray** cells, int row, int column, int byteStart) {

@@ -10,6 +10,7 @@
 				"-O3",
 				
 				"${workspaceFolder}\\src\\*.cpp",
+				"${workspaceFolder}\\src\\utility\\*.cpp",
 				"${workspaceFolder}\\src\\glad.c",
 				
 				"-I${workspaceFolder}\\include",
