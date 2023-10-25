@@ -57,6 +57,10 @@ public:
         setAll(array);
     }
 
+    AvxBitArray(__m256i data) {
+        this->data = data;
+    }
+
     AvxBitArray(const BYTE* source) {
         data = _mm256_loadu_si256((__m256i*)source);
     }
