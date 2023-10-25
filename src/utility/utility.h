@@ -21,7 +21,7 @@ namespace Utility {
 		// When drawn onscreen, the least byte (index 0-7) will be on the left.
 		// Therefore, shifting left by 8 should remove this byte.
 		// Counterintuitively, this is accomplished by a right shift.
-		shiftedBits = bits >> 1;
+		shiftedBits = bits.shiftRight<1>();
 		if ((rightBorder & 0x01) != 0) {
 			__m256i rightmost = _mm256_set_epi64x(0x8000000000000000, 0, 0, 0);
 			shiftedBits |= rightmost;
@@ -29,7 +29,7 @@ namespace Utility {
 	}
 
 	void shiftRight(const AvxBitArray& bits, AvxBitArray& shiftedBits, BYTE leftBorder) {
-		shiftedBits = bits << 1;
+		shiftedBits = bits.shiftLeft<1>();
 		if ((leftBorder & 0x80) != 0) {
 			__m256i leftmost = _mm256_set_epi64x(0, 0, 0, 1);
 			shiftedBits |= leftmost;

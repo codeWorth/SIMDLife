@@ -307,6 +307,25 @@ public:
         return out;
     }
 
+    // 1 <= N < 64
+    template <unsigned int N> AvxBitArray shiftLeft() const {
+        __m256i mask = _mm256_permute2x128_si256(data, data, _MM_SHUFFLE(0,0,3,0));
+        auto rollover = _mm256_alignr_epi8(data, mask, 16-8);
+        rollover = _mm256_srli_epi64(rollover, 64 - N);   
+
+        auto output = _mm256_slli_epi64(data, N);
+        return AvxBitArray(_mm256_or_si256(output, rollover));
+    }
+    // 1 <= N < 64
+    template <unsigned int N> AvxBitArray shiftRight() const {
+        __m256i swap = _mm256_permute2x128_si256(data, data, 0x81);
+        auto rollover =  _mm256_alignr_epi8(swap, data, 8);
+        rollover = _mm256_slli_epi64(rollover, 64 - N);
+
+        auto output = _mm256_srli_epi64(data, N);
+        return AvxBitArray(_mm256_or_si256(output, rollover));
+    }
+
     bool operator==(const AvxBitArray& other) const {
         auto cmp_result =_mm256_cmpeq_epi8(data, other.data);
         return _mm256_movemask_epi8(cmp_result) == 0xFFFFFFFF;
