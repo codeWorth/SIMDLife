@@ -1,7 +1,6 @@
 #pragma once
 #include "XXHash32.h"
 #include "avx_bit_array.h"
-#include "usage_hashmap.h"
 #include <iostream>
 
 namespace Utility {
@@ -53,16 +52,8 @@ namespace Utility {
 
 	void nextState(
 		AvxArray** cells, int row, int column, 
-		AvxArray** nextCells, int nRows, int nColumns,
-		UsageHashmap<AvxArray, AvxArray, 16, AVX256_Hash, AVX256_Equal>& blocksLookup
+		AvxArray** nextCells, int nRows, int nColumns
 	) {
-		// auto conv = blocksLookup.find(cells[row][column]);
-		// if (conv != blocksLookup.end()) {
-		// 	blocksLookup.count(conv);
-		// 	nextCells[row][column] = *blocksLookup.get(conv);
-		// 	return;
-		// }
-
 		AvxBitArray state = AvxBitArray(cells[row][column].bytes);
 		AvxBitArray neighbors[8];
 
@@ -78,7 +69,6 @@ namespace Utility {
 		AvxBitArray result = doCmpSwap(neighbors, state);
 		result &= _mm256_set_epi64x(0x7FFE7FFE7FFE, 0x7FFE7FFE7FFE7FFE, 0x7FFE7FFE7FFE7FFE, 0x7FFE7FFE7FFE0000); // crop edges out
 		result.write(nextCells[row][column].bytes);
-		// blocksLookup.countOrPut(cells[row][column], nextCells[row][column]);
 	}
 	
 	AvxBitArray gatherRow(AvxArray** cells, int row, int column, int byteStart) {

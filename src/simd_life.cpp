@@ -9,7 +9,6 @@
 SIMDLife::SIMDLife(int width, int height, std::random_device& rd) : 
 	width(width), height(height), 
 	blocksW(width/16), blocksH(height/16),
-	blockLookup(1000),
 	eng(rd()), dist(0, 255)
 {
 	this->cells = new AvxArray*[blocksH];
@@ -73,7 +72,7 @@ void SIMDLife::setup() {
 void SIMDLife::tick() {
 	for (int i = 0; i < blocksH; i++) {
 		for (int j = 0; j < blocksW; j++) {
-			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW, blockLookup);
+			Utility::nextState(cells, i, j, nextCells, blocksH, blocksW);
 		}
 	}
 

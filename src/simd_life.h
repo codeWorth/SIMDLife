@@ -6,7 +6,7 @@
 #include "life.h"
 #include "constants.h"
 #include "utility/XXHash32.h"
-#include "utility/usage_hashmap.h"
+#include <unordered_set>
 
 class SIMDLife: Life {
 public:
@@ -25,7 +25,6 @@ private:
 	const int height; // given height in cells
 	const int blocksW; // width in blocks (block is 16x16 cells)
 	const int blocksH; // height in blocks
-	UsageHashmap<AvxArray, AvxArray, 16, AVX256_Hash, AVX256_Equal> blockLookup;
 
 	AvxArray** cells;
 	AvxArray** nextCells;
