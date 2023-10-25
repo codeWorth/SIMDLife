@@ -359,7 +359,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	PHYSICS_THREAD.detach();
-	free(pixelBuffer);
+	_mm_free(pixelBuffer);
 	delete life;
 
 	glfwDestroyWindow(window);

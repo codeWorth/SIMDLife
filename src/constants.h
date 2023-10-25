@@ -19,4 +19,9 @@ const int CELLS_HEIGHT = AVX_SIZE * 13;   // must be a factor of AVX_SIZE
 union AvxArray {
     alignas(32) BYTE bytes[32];
     __m256i avx;
+
+    AvxArray& operator=(const AvxArray& other) {
+        memcpy(bytes, other.bytes, 32);
+        return *this;
+    }
 };

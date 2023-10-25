@@ -9,6 +9,7 @@
 SIMDLife::SIMDLife(int width, int height, std::random_device& rd) : 
 	width(width), height(height), 
 	blocksW(width/16), blocksH(height/16),
+	blockLookup(1000),
 	eng(rd()), dist(0, 255)
 {
 	this->cells = new AvxArray*[blocksH];
@@ -19,14 +20,14 @@ SIMDLife::SIMDLife(int width, int height, std::random_device& rd) :
 
 SIMDLife::~SIMDLife() {
 	for (int i = 0; i < blocksH; i++) {
-		free(cells[i]);
-		free(nextCells[i]);
-		free(drawCells[i]);
+		_mm_free(cells[i]);
+		_mm_free(nextCells[i]);
+		_mm_free(drawCells[i]);
 	}
 	delete[] cells;
 	delete[] nextCells;
 	delete[] drawCells;
-	free(this->blockPixels);
+	_mm_free(this->blockPixels);
 }
 
 void SIMDLife::setup() {

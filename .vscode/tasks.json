@@ -60,17 +60,18 @@
 		},
 		{
 			"type": "shell",
-			"label": "C/C++: g++.exe build find_net tests",
+			"label": "C/C++: g++.exe build tests",
 			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
 			"args": [
 				"-march=native",
 				"-O3",
 				"-Wno-narrowing",
 				
+				"${workspaceFolder}\\src\\utility\\*.cpp",
 				"${workspaceFolder}\\src\\tests\\run_tests.cpp",
 				
 				"-o",
-				"${workspaceFolder}\\bin\\test_findnet.exe"
+				"${workspaceFolder}\\bin\\run_tests.exe"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
